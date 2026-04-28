@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mese</title>
+<style>
+:root{--bg:#0f1115;--text:#eaeaea;--card:#0f131d;--border:#1f2638;--muted:rgba(255,255,255,.72);--muted2:rgba(255,255,255,.55);--accent:#2e6bff;
+--rientro:#7c4dff;--assforf:#ff9f1a;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;padding-bottom:86px}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(15,17,21,.90);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
+header h1{margin:0;font-size:15px;font-weight:950;flex:1;text-align:center}
+header button{background:#131826;color:#fff;border:1px solid #2b3550;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:950;min-width:44px;min-height:44px}
+.wrap{max-width:1100px;margin:0 auto;padding:12px}
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:12px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pill{display:flex;flex-direction:column;gap:6px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px}
+.pill label{font-size:11px;opacity:.75;font-weight:850}
+select,input{background:rgba(10,14,26,.75);color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 10px;font-size:16px;outline:none}
+.btn{background:#131826;color:#fff;border:1px solid #2b3550;border-radius:14px;padding:12px 12px;font-weight:950;cursor:pointer;min-height:44px}
+.btn.primary{background:linear-gradient(180deg,#1d63ff 0%,#1547c8 100%);border-color:rgba(120,170,255,.55)}
+.muted{opacity:.75}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:12px}
+.dayBtn{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px 8px;min-height:78px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px}
+.dayBtn.sel{border:2px solid rgba(46,107,255,.75);box-shadow:0 0 0 2px rgba(46,107,255,.12) inset,0 0 10px rgba(46,107,255,.22)}
+.dayNum{font-size:16px;font-weight:950;opacity:.9}
+.dayShift{font-size:13px;font-weight:950;opacity:.9}
+.dayShift .eff{opacity:1}
+.dayShift .sep{opacity:.4;padding:0 4px}
+.dBadges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.badge{font-size:11px;font-weight:950;padding:2px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06)}
+.badge.rientro{border-color:rgba(124,77,255,.6);background:rgba(124,77,255,.18)}
+.badge.assforf{border-color:rgba(255,159,26,.65);background:rgba(255,159,26,.16)}
+.badge.trasf{border-color:rgba(46,107,255,.55);background:rgba(46,107,255,.14)}
+.badge.pranzo{border-color:rgba(80,227,194,.55);background:rgba(80,227,194,.12)}
+.bottomNav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(9,12,20,.98);border-top:1px solid rgba(255,255,255,.10);backdrop-filter:blur(12px);z-index:9999;box-shadow:0 -10px 24px rgba(0,0,0,.35)}
+.bottomNav a{flex:1;background:#131826;color:#fff;border:1px solid #2b3550;border-radius:14px;padding:12px 10px;text-align:center;text-decoration:none;font-weight:950;min-height:44px;display:flex;align-items:center;justify-content:center}
+.bottomNav a.active{background:linear-gradient(180deg,#1d63ff 0%,#1547c8 100%);border-color:rgba(120,170,255,.55)}
+
+@media (max-width: 420px){
+  .wrap{padding:10px}
+  .card{padding:10px;border-radius:16px}
+  .calGrid{gap:6px}
+  .dayBtn{min-height:68px;padding:8px 6px;border-radius:13px}
+  .dayNum{font-size:15px}
+  .dayShift{font-size:12px}
+  .badge{font-size:10px;padding:2px 6px;border-radius:8px}
+  .pill{min-height:44px}
+  select, input{font-size:16px} /* evita zoom iOS */
+}
+
+
+/* calendario-like */
+.dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.dowCell{text-align:center;font-size:10.5px;font-weight:950;letter-spacing:.35px;color:var(--muted2);
+  padding:6px 2px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:6px}
+.dayBtn{min-height:86px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
+.dayBtn.off{opacity:.18;pointer-events:none}
+.dayNum{font-size:12px;opacity:.8;font-weight:950}
+.dayShift{font-size:14px;font-weight:1000;margin-top:4px}
+.dBadges{margin-top:auto;display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:10.5px;font-weight:950;padding:2px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.12)}
+.badge.rientro{border-color: rgba(124,77,255,.7); box-shadow:0 0 0 1px rgba(124,77,255,.12) inset;}
+.badge.assforf{border-color: rgba(255,159,26,.7); box-shadow:0 0 0 1px rgba(255,159,26,.12) inset;}
+.dayBtn.hasRientro{ background: rgba(124,77,255,.10); }
+.dayBtn.hasAssForf{ background: rgba(255,159,26,.12); }
+.hasRientro.hasAssForf{ background: rgba(255,159,26,.12); }
+@media (max-width: 390px){
+  .calGrid,.dow{gap:5px}
+  .dayBtn{min-height:80px;padding:8px;border-radius:13px}
+  .dayShift{font-size:13px}
+}
+
+
+.legendColors{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;opacity:.85;font-size:12px}
+.legendItem{display:flex;align-items:center;gap:6px}
+.legendDot{width:10px;height:10px;border-radius:50%}
+.legendDot.r{background:rgba(124,77,255,.35)}
+.legendDot.a{background:rgba(255,159,26,.45)}
+
+
+.clockDot{
+  font-size: 12px;
+  line-height: 1;
+  opacity: .9;
+}
+.topRow{
+  display:flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+</style>
+<script>
+  window.API_BASE = window.API_BASE || "https://turni-api-v2.mecfed.workers.dev";
+</script>
+</head>
+<body>
+<header>
+  <button id="prev" aria-label="Mese precedente">◀</button>
+  <h1 id="title">Mese</h1>
+  <button id="next" aria-label="Mese successivo">▶</button>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="row" style="align-items:flex-end;justify-content:space-between">
+      <div>
+        <div style="font-weight:1000;font-size:16px">Inserimento rapido</div>
+        <div class="muted" style="font-size:12px;margin-top:2px">Seleziona i giorni e applica trasferta/rientro/pranzo.</div>
+      </div>
+      <div class="row">
+        <div class="pill">
+          <label for="yy">Anno</label>
+          <select id="yy"></select>
+        </div>
+        <div class="pill">
+          <label for="mm">Mese</label>
+          <select id="mm">
+            <option value="01">Gen</option><option value="02">Feb</option><option value="03">Mar</option><option value="04">Apr</option>
+            <option value="05">Mag</option><option value="06">Giu</option><option value="07">Lug</option><option value="08">Ago</option>
+            <option value="09">Set</option><option value="10">Ott</option><option value="11">Nov</option><option value="12">Dic</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div class="pill" style="min-width:180px">
+        <label>Trasferta</label>
+        <select id="qTrip">
+          <option value="">—</option>
+          <option value="96">96</option>
+          <option value="66">66</option>
+          <option value="75">75%</option>
+          <option value="__CLEAR__">Svuota</option>
+        </select>
+      </div>
+      <div class="pill" style="min-width:220px">
+        <label>Rientro</label>
+        <select id="qForf">
+          <option value="">—</option>
+          <option value="FR66">FR66</option>
+          <option value="FR32">FR32</option>
+          <option value="__CLEAR__">Svuota</option>
+        </select>
+      </div>
+      <div class="pill" style="min-width:160px">
+        <label>Pranzo</label>
+        <div class="row" style="gap:8px">
+          <input id="qLunch" type="checkbox" style="width:20px;height:20px">
+          <div class="muted" style="font-size:12px">Applica ai selezionati</div>
+        </div>
+      </div>
+      <button class="btn primary" id="qApply">Applica</button>
+      <button class="btn" id="qSelectAll">Tutti</button>
+      <button class="btn" id="qClearSel">Azzera</button>
+      <div class="muted" id="qStatus" style="font-weight:900">—</div>
+    </div>
+
+    <div id="dow" class="dow">
+  <div class="dowCell">LUN</div><div class="dowCell">MAR</div><div class="dowCell">MER</div><div class="dowCell">GIO</div><div class="dowCell">VEN</div><div class="dowCell">SAB</div><div class="dowCell">DOM</div>
+</div>
+<div id="daysGrid" class="calGrid"></div>
+    <div class="muted" style="margin-top:10px;font-size:12px">
+      Nota: qui inserisci solo trasferta/rientro/pranzo. Spese/ore/dettagli si mettono nel Giorno.
+    </div>
+  </div>
+
+  <div id="legendColors" class="legendColors">
+    <div class="legendItem"><span class="legendDot r"></span>Rientro (FR66/FR32)</div>
+    <div class="legendItem"><span class="legendDot a"></span>Forfettario su assenza</div>
+  </div>
+</div>
+
+<div class="bottomNav">
+  <a href="schemi.html">Schemi</a>
+  <a href="index.html">Calendario</a>
+  <a href="mese.html" class="active">Mese</a>
+  <a href="riepilogo.html">Riepilogo</a>
+  <a href="dati.html">Dati</a>
+  <a href="ai_trasferta.html">AI</a>
+</div>
+
+<script>
+const API_BASE = window.API_BASE || "https://turni-api-v2.mecfed.workers.dev";
+const API = {
+  activeSchema: API_BASE + "/api/schema/active",
+  userTeams: API_BASE + "/api/user/teams",
+  daysRange: API_BASE + "/api/days",
+  day: API_BASE + "/api/day"
+};
+const daysGrid = document.getElementById("daysGrid");
+const qTrip = document.getElementById("qTrip");
+const qForf = document.getElementById("qForf");
+const qLunch = document.getElementById("qLunch");
+const qStatus = document.getElementById("qStatus");
+const yy = document.getElementById("yy");
+const mm = document.getElementById("mm");
+
+let qSelected = new Set(); // day numbers
+let qMonthDays = {}; // iso -> entry
+let qi_userTeams = null;
+const qi_schemaCache = {}; // iso -> schema
+
+function pad2(n){ return String(n).padStart(2,"0"); }
+function isoToDMY(iso){ const [y,m,d]=String(iso||"").split("-"); return `${d}-${m}-${y}`; }
+function parseDMY(dmy){
+  const s0 = String(dmy||"").trim();
+  if(!s0) return null;
+  const s = s0.replaceAll("/","-").replaceAll(".","-");
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){
+    const [y,m,d]=s.split("-").map(Number);
+    return new Date(y,m-1,d);
+  }
+  const [d,m,y]=s.split("-").map(Number);
+  if(!d||!m||!y) return null;
+  return new Date(y,m-1,d);
+}
+function daysBetweenUTC(a,b){
+  const t0 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  const t1 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.floor((t1-t0)/86400000);
+}
+function parseSeqTokens(seqStr){
+  const s = String(seqStr||"").trim().toUpperCase();
+  if(!s) return [];
+  if(/[\,\s|\/;\-]/.test(s)){
+    return s.split(/[\,\s|\/;\-]+/).filter(Boolean);
+  }
+  const TOKENS = ["RC","RN","ON","M","P","N"];
+  const out=[]; let i=0;
+  while(i<s.length){
+    let matched=null;
+    for(const t of TOKENS){
+      if(s.substring(i,i+t.length)===t){ matched=t; break; }
+    }
+    if(!matched){ i++; continue; }
+    out.push(matched); i+=matched.length;
+  }
+  return out;
+}
+async function fetchJSON(url, opts){
+  const r = await fetch(url, opts||{});
+  const t = await r.text().catch(()=> "");
+  if(!r.ok) throw new Error(`${r.status} ${t}`.trim());
+  try{ return JSON.parse(t); }catch{ return {}; }
+}
+async function apiGet(url){ return fetchJSON(url, {headers:{Accept:"application/json"}}); }
+async function apiPut(url, body){
+  return fetchJSON(url, {method:"PUT", headers:{"Content-Type":"application/json","Accept":"application/json"}, body:JSON.stringify(body)});
+}
+function monthRange(){
+  const y = String(yy.value||"").trim();
+  const m = String(mm.value||"").trim();
+  if(!y||!m) return null;
+  const from = `${y}-${m}-01`;
+  const lastDay = new Date(Number(y), Number(m), 0).getDate();
+  const to = `${y}-${m}-${pad2(lastDay)}`;
+  return {y,m,from,to,lastDay};
+}
+function isoForDay(y,m,day){ return `${y}-${m}-${pad2(day)}`; }
+
+async function loadMonthDays(){
+  const mr=monthRange(); if(!mr) return;
+  const j = await fetchJSON(`${API_BASE}/api/days?from=${encodeURIComponent(mr.from)}&to=${encodeURIComponent(mr.to)}`);
+  qMonthDays={}; (j.days||[]).forEach(d=>{ qMonthDays[d.date]=d; });
+}
+
+async function qiLoadUserTeams(){
+  if(qi_userTeams) return qi_userTeams;
+  try{ const j=await apiGet(API.userTeams); qi_userTeams=j.teams||[]; }catch(e){ qi_userTeams=[]; }
+  return qi_userTeams;
+}
+function qiTeamForISO(iso, teams){
+  let last=null;
+  for(const r of teams){
+    const d=parseDMY(r.from_date);
+    if(!d) continue;
+    const iso0 = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    if(iso0<=iso) last=String(r.squadra||"").trim().toUpperCase();
+  }
+  return last;
+}
+async function qiSchemaForISO(iso){
+  if(Object.prototype.hasOwnProperty.call(qi_schemaCache, iso)) return qi_schemaCache[iso];
+  const dmy=isoToDMY(iso);
+  let s=null;
+  try{ s=await apiGet(`${API.activeSchema}?date=${encodeURIComponent(dmy)}`); }catch(e){ s=null; }
+  qi_schemaCache[iso]=s;
+  return s;
+}
+async function qiPlannedShift(iso){
+  if(!Array.isArray(qi_userTeams) || qi_userTeams.length===0){ try{ await qiLoadUserTeams(); }catch(e){} }
+  const schema = await qiSchemaForISO(iso);
+  if(!schema) return "";
+  const start = parseDMY(schema.week1);
+  if(!start) return "";
+  const target = parseDMY(isoToDMY(iso));
+  if(!target) return "";
+  const diff = daysBetweenUTC(start, target);
+  if(diff<0) return "";
+  const teams = await qiLoadUserTeams();
+  let team = qiTeamForISO(iso, teams);
+  if(!team){
+    try{ const keys=schema&&schema.squads?Object.keys(schema.squads):[]; if(keys.length) team=String(keys[0]||"").trim().toUpperCase(); }catch(e){}
+  }
+  if(!team) return "";
+  const seqRaw = (schema.squads && schema.squads[team]) ? schema.squads[team] : "";
+  const tokens = parseSeqTokens(seqRaw);
+  if(!tokens.length) return "";
+  return tokens[diff % tokens.length] || "";
+}
+function isRientro(f){ const x=String(f||"").toUpperCase(); return x==="FR66"||x==="FR32"; }
+
+function buildBadges(entry){
+  const out=[];
+  const trip=String(entry?.trip_type||"").trim();
+  const forf=String(entry?.forfettario_id||"").toUpperCase();
+  const lunch=Number(entry?.lunch||0)===1;
+  const flagAbs=Number(entry?.absence_flag||0)===1;
+  const absType=String(entry?.absence_type||"").toUpperCase();
+
+  if(trip) out.push({t: `T${trip}`, cls:"trasf"});
+  if(isRientro(forf)) out.push({t: forf==="FR66"?"R66":"R32", cls:"rientro"});
+  if(lunch) out.push({t:"P", cls:"pranzo"});
+  if(flagAbs && (trip || isRientro(forf))) out.push({t:"ASS", cls:"assforf"});
+  if(absType==="104") out.push({t:"104", cls:"assforf"});
+  return out;
+}
+
+async function renderGrid(){
+  const mr=monthRange(); if(!mr) return;
+  daysGrid.innerHTML="";
+  qSelected=new Set();
+  if(qStatus) qStatus.textContent="—";
+  await loadMonthDays();
+
+  // blanks before 1st (calendar-like, lun=0)
+  const first = new Date(Number(mr.y), Number(mr.m)-1, 1);
+  const startDay = (first.getDay()+6)%7;
+  for(let i=0;i<startDay;i++){
+    const off=document.createElement("div");
+    off.className="dayBtn off";
+    off.innerHTML = `<div class="dayNum"> </div><div class="dayShift muted"> </div><div class="dBadges"></div>`;
+    daysGrid.appendChild(off);
+  }
+
+  for(let d=1; d<=mr.lastDay; d++){
+
+    const iso=isoForDay(mr.y,mr.m,d);
+    const entry=qMonthDays[iso]||null;
+
+    const b=document.createElement("div");
+    b.className="dayBtn";
+    b.dataset.day=String(d);
+    const _forf = String(entry?.forfettario_id||"").toUpperCase();
+    const _flagAbs = Number(entry?.absence_flag||0)===1;
+    const _hasR = (_forf==="FR66"||_forf==="FR32"||Number(entry?.trip_return||0)===1);
+    const _hasAssForf = _flagAbs && (String(entry?.trip_type||"").trim() || _hasR);
+    if(_hasR) b.classList.add("hasRientro");
+    if(_hasAssForf) b.classList.add("hasAssForf");
+    b.innerHTML = `<div class="dayNum">${d}</div>
+      <div class="dayShift muted">—</div>
+      <div class="dBadges"></div>`;
+
+    b.onclick=()=>{
+      if(qSelected.has(d)) qSelected.delete(d); else qSelected.add(d);
+      b.classList.toggle("sel");
+      if(qStatus) qStatus.textContent = qSelected.size ? (qSelected.size+" giorni selezionati") : "—";
+    };
+
+    // badges
+    const badges = buildBadges(entry);
+    const wrap=b.querySelector(".dBadges");
+    if(wrap && badges.length){
+      wrap.innerHTML = badges.map(x=>`<span class="badge ${x.cls}">${x.t}</span>`).join("");
+    } else if(wrap){ wrap.innerHTML=""; }
+
+    // shift label (previsto sempre, eff solo se diverso)
+    (async()=>{
+      const planned = await qiPlannedShift(iso);
+      const eff = String(entry?.actual||"").trim().toUpperCase();
+      const effLabel = (eff==="ASS") ? (String(entry?.absence_type||"ASS").trim().toUpperCase()) : eff;
+      let txt = planned || "";
+      if(eff && eff !== planned){ txt = `${planned||""} / ${effLabel}`.trim().replace(/^\s*\/\s*/,""); }
+      const el=b.querySelector(".dayShift");
+      if(el) el.textContent = txt || "";
+    })();
+
+    daysGrid.appendChild(b);
+  }
+}
+
+function syncMutualExclusion(){
+  const tripSel=String(qTrip.value||"").trim();
+  const forfSel=String(qForf.value||"").trim().toUpperCase();
+  if(tripSel && tripSel!=="__CLEAR__"){ qForf.value=""; }
+  if((forfSel==="FR66"||forfSel==="FR32") && qTrip){ qTrip.value=""; }
+}
+
+async function applyToSelected(){
+  const mr=monthRange(); if(!mr) return;
+  if(!qSelected.size){ alert("Seleziona almeno un giorno."); return; }
+  syncMutualExclusion();
+
+  const tripSel=String(qTrip.value||"").trim();
+  const forfSel=String(qForf.value||"").trim().toUpperCase();
+  const lunchSel=qLunch.checked ? 1 : 0;
+
+  const tripNew=(tripSel==="__CLEAR__") ? "" : tripSel;
+  const forfNew=(forfSel==="__CLEAR__") ? "" : forfSel;
+  const finalForf = tripNew ? "" : forfNew;
+  const finalTrip = (finalForf==="FR66"||finalForf==="FR32") ? "" : tripNew;
+
+  await loadMonthDays();
+  let ok=0, ko=0;
+  for(const d of Array.from(qSelected).sort((a,b)=>a-b)){
+    const iso=isoForDay(mr.y,mr.m,d);
+    const old=qMonthDays[iso]||{};
+    const body={
+      date: iso,
+      actual: String(old.actual||""),
+      absence_type: String(old.absence_type||""),
+      absence_flag: Number(old.absence_flag||0),
+      trip_type: finalTrip,
+      forfettario_id: finalForf,
+      trip_return: (finalForf==="FR66"||finalForf==="FR32") ? 1 : 0,
+      lunch: lunchSel,
+      fuel: (old.fuel ?? ""),
+      toll: (old.toll ?? ""),
+      other: (old.other ?? ""),
+      note: String(old.note||""),
+      travel50_h: (old.travel50_h ?? old.travel_h ?? ""),
+      travel100_h: (old.travel100_h ?? ""),
+      drive150_h: (old.drive150_h ?? ""),
+      actual_start: (old.actual_start ?? ""),
+      actual_end: (old.actual_end ?? "")
+    };
+    try{
+      await apiPut(API.day, body);
+      ok++;
+    }catch(e){
+      console.warn("apply fail", iso, e);
+      ko++;
+    }
+  }
+  alert(`Fatto. OK: ${ok} / Errori: ${ko}`);
+  await renderGrid();
+}
+
+// month nav arrows
+function shiftMonth(delta){
+  const y=Number(yy.value), m=Number(mm.value);
+  const dt=new Date(y, m-1, 1);
+  dt.setMonth(dt.getMonth()+delta);
+  yy.value=String(dt.getFullYear());
+  mm.value=pad2(dt.getMonth()+1);
+  renderGrid();
+}
+document.getElementById("prev").onclick=()=>shiftMonth(-1);
+document.getElementById("next").onclick=()=>shiftMonth(1);
+document.getElementById("qApply").onclick=()=>applyToSelected();
+document.getElementById("qSelectAll").onclick=()=>{
+  const mr=monthRange(); if(!mr) return;
+  qSelected=new Set(); 
+  Array.from(daysGrid.querySelectorAll(".dayBtn")).forEach(b=>{ const d=Number(b.dataset.day); qSelected.add(d); b.classList.add("sel"); });
+  if(qStatus) qStatus.textContent = qSelected.size+" giorni selezionati";
+};
+document.getElementById("qClearSel").onclick=()=>{
+  qSelected=new Set();
+  Array.from(daysGrid.querySelectorAll(".dayBtn")).forEach(b=>b.classList.remove("sel"));
+  if(qStatus) qStatus.textContent="—";
+};
+yy.addEventListener("change", ()=>renderGrid());
+mm.addEventListener("change", ()=>renderGrid());
+
+// init year options
+(function init(){
+  const now=new Date();
+  const y=now.getFullYear();
+  for(let k=y-2;k<=y+2;k++){
+    const o=document.createElement("option"); o.value=String(k); o.textContent=String(k); yy.appendChild(o);
+  }
+  yy.value=String(y);
+  mm.value=pad2(now.getMonth()+1);
+  renderGrid();
+})();
+
+
+// header prev/next (sincronizza con select mese/anno)
+(function(){
+  const btnPrev=document.getElementById("prev");
+  const btnNext=document.getElementById("next");
+  const title=document.getElementById("title");
+  function updateTitle(){
+    const y=String(yy.value||""); const m=String(mm.value||"");
+    if(!y||!m){ if(title) title.textContent="Mese"; return; }
+    const d=new Date(Number(y), Number(m)-1, 1);
+    const label=d.toLocaleDateString("it-IT",{month:"long",year:"numeric"});
+    if(title) title.textContent=label;
+  }
+  async function rerender(){ updateTitle(); await renderGrid(); }
+  if(btnPrev) btnPrev.onclick=()=>{
+    const d=new Date(Number(yy.value||new Date().getFullYear()), Number(mm.value||"01")-1, 1);
+    d.setMonth(d.getMonth()-1);
+    yy.value=String(d.getFullYear());
+    mm.value=pad2(d.getMonth()+1);
+    rerender();
+  };
+  if(btnNext) btnNext.onclick=()=>{
+    const d=new Date(Number(yy.value||new Date().getFullYear()), Number(mm.value||"01")-1, 1);
+    d.setMonth(d.getMonth()+1);
+    yy.value=String(d.getFullYear());
+    mm.value=pad2(d.getMonth()+1);
+    rerender();
+  };
+  yy.addEventListener("change", updateTitle);
+  mm.addEventListener("change", updateTitle);
+  const _oldInit = (typeof updateTitle==="function")?updateTitle:null;
+  const _oldRender = renderGrid;
+  // ensure title set after first init
+  setTimeout(updateTitle,0);
+})();
+</script>
+</body>
+</html>

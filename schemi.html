@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Schemi</title>
+  <style>
+    :root{
+      --bg:#0f1115; --panel:#141824; --panel2:#0f1420; --line:#263047;
+      --text:#e8ecf3; --muted:#a9b3c7; --accent:#6aa6ff; --ok:#3ddc97; --danger:#ff6a6a;
+      --input:#0b0f19;
+    }
+    *{box-sizing:border-box}
+    body{padding-bottom:86px; margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
+    header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:#0c0f18;position:sticky;top:0;z-index:10}
+    header h1{margin:0;font-size:16px;font-weight:900}
+    header .sp{flex:1}
+    a.btn, button.btn{
+      border:1px solid var(--line);background:var(--panel);color:var(--text);
+      padding:8px 10px;border-radius:10px;font-weight:800;font-size:13px;
+      text-decoration:none;cursor:pointer
+    }
+    a.btn:hover, button.btn:hover{border-color:#3a4a6e}
+    button.btn.primary{border-color:#2f5fb8;background:#142444}
+    button.btn.ok{border-color:#1f5a44;background:#12261f}
+    button.btn.danger{border-color:#6a2a2a;background:#2a1414}
+
+    main{max-width:1100px;margin:0 auto;padding:16px;display:grid;grid-template-columns:360px 1fr;gap:14px}
+    @media (max-width: 980px){ main{grid-template-columns:1fr} }
+
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+    .hd{padding:12px;border-bottom:1px solid var(--line);background:var(--panel2);font-weight:900;display:flex;gap:10px;align-items:center}
+    .hd .right{margin-left:auto}
+    .bd{padding:12px}
+
+    .note{padding:10px;border:1px dashed #3a4a6e;border-radius:12px;background:#0e1424;color:var(--muted);font-size:12px;line-height:1.35}
+
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{padding:10px;border:1px solid var(--line);border-radius:12px;cursor:pointer;background:#101626}
+    .item:hover{border-color:#3a4a6e}
+    .item.active{border-color:var(--accent);box-shadow:0 0 0 1px rgba(106,166,255,.25) inset}
+    .item .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .badge{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+    .badge.on{border-color:rgba(61,220,151,.35);color:var(--ok)}
+    .badge.site{border-color:rgba(106,166,255,.35);color:var(--accent)}
+    .muted{color:var(--muted);font-size:12px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+
+    .row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    @media (max-width: 680px){ .row{grid-template-columns:1fr} }
+
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+    input, textarea{
+      width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);
+      background:var(--input);color:var(--text);outline:none;font-size:13px
+    }
+    input:focus, textarea:focus{border-color:#3a5aa7}
+    textarea{min-height:100px;resize:vertical}
+
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    th{font-size:12px;color:var(--muted);text-align:left;padding:0 8px;font-weight:900}
+    td{padding:0 8px}
+    .trow{background:#0d1220;border:1px solid var(--line);border-radius:12px}
+    .trow td{padding:10px 8px}
+
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .status{margin-top:10px;font-size:13px}
+    .status.ok{color:var(--ok)}
+    .status.err{color:var(--danger)}
+
+    details{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#101626;margin-top:12px}
+    details summary{cursor:pointer;user-select:none;padding:10px 12px;font-weight:900;font-size:13px;background:#0f1420;border-bottom:1px solid var(--line)}
+    details .inner{padding:12px}
+  
+/* Bottom navigation (sempre visibile) */
+.bottomNav{
+  position:fixed; left:0; right:0; bottom:0;
+  display:flex; gap:10px;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(9,12,20,.98);
+  border-top:1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(12px);
+  z-index:9999; /* sopra tutto */
+  box-shadow: 0 -10px 24px rgba(0,0,0,.35);
+}
+.bottomNav a{
+  flex:1;
+  background:#131826;
+  color:#fff;
+  border:1px solid #2b3550;
+  border-radius:14px;
+  padding:12px 10px;
+  text-align:center;
+  text-decoration:none;
+  font-weight:950;
+  min-height:44px;
+  display:flex; align-items:center; justify-content:center;
+}
+.bottomNav a.active{
+  background: linear-gradient(180deg, #1d63ff 0%, #1547c8 100%);
+  border-color: rgba(120,170,255,.55);
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>Schemi</h1>
+  <div class="sp"></div>
+  <a class="btn" href="index.html">Calendario</a>
+  <a class="btn" href="dati.html">Dati personali</a>
+  <button class="btn" id="btnReload">Ricarica</button>
+</header>
+
+<main>
+  <!-- LISTA -->
+  <section class="card">
+    <div class="hd">
+      Elenco schemi
+      <span class="muted right" id="count">—</span>
+    </div>
+    <div class="bd">
+      <div class="note" id="activeBanner" style="display:none;margin-bottom:10px"></div>
+
+      <div class="note" style="margin-bottom:10px">
+        <strong>Attivo da:</strong> inserisci la data (DD-MM-YYYY) e poi premi <strong>Rendi attivo</strong>.<br>
+        Esattamente come “cambio squadra”: vale solo dal giorno indicato in poi.
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label>Attivo da (DD-MM-YYYY)</label>
+          <input id="activeFrom" placeholder="01-02-2026" class="mono" />
+        </div>
+      </div>
+
+      <div class="list" id="list"></div>
+
+      <div class="note" style="margin-top:12px">
+        <strong>Nota:</strong> “Rendi attivo” usa <span class="mono">/api/schemas/activate</span> (sicuro).
+      </div>
+    </div>
+  </section>
+
+  <!-- DETTAGLIO -->
+  <section class="card">
+    <div class="hd">
+      Dettaglio schema
+      <span class="muted right" id="sel">Nessuno selezionato</span>
+    </div>
+    <div class="bd">
+
+      <div class="row">
+        <div>
+          <label>Nome</label>
+          <input id="name" placeholder="Es. Centrale A" />
+        </div>
+        <div>
+          <label>Week1 (DD-MM-YYYY)</label>
+          <input id="week1" placeholder="01-01-2026" class="mono" />
+        </div>
+        <div>
+          <label>Sito / Centrale</label>
+          <input id="site" placeholder="Es. La Spezia" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="btnSave">Salva modifiche</button>
+        <button class="btn ok" id="btnMakeActive">Rendi attivo</button>
+        <button class="btn danger" id="btnDelete">Elimina</button>
+        <span class="muted" id="activeRO" style="align-self:center"></span>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <div style="height:10px"></div>
+
+      <div class="note">
+        <strong>Orari turni per questa centrale</strong><br>
+        Salviamo <span class="mono">M / P / N / ON</span>. Per ON puoi impostare la <strong>pausa</strong> (es. 45 min).
+        La pausa la teniamo come “backup” (utile quando faremo il calcolo ore).
+      </div>
+
+      <table style="margin-top:10px">
+        <thead>
+          <tr>
+            <th style="width:90px">Turno</th>
+            <th style="width:160px">Inizio</th>
+            <th style="width:160px">Fine</th>
+            <th style="width:140px">Pausa (min)</th>
+          </tr>
+        </thead>
+        <tbody id="timesBody"></tbody>
+      </table>
+
+      <details>
+        <summary>➕ Crea nuovo schema</summary>
+        <div class="inner">
+          <div class="row">
+            <div>
+              <label>Nome</label>
+              <input id="newName" placeholder="Es. Centrale B" />
+            </div>
+            <div>
+              <label>Week1 (DD-MM-YYYY)</label>
+              <input id="newWeek1" placeholder="01-01-2026" class="mono" />
+            </div>
+            <div>
+              <label>Sito / Centrale</label>
+              <input id="newSite" placeholder="Es. Centrale B" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn" id="btnCopyFromSelected">Copia squads dal selezionato</button>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>Squadra A (seq 42 turni)</label>
+              <input id="sqA" class="mono" placeholder="stringa 42 turni..." />
+            </div>
+            <div>
+              <label>Squadra B</label>
+              <input id="sqB" class="mono" placeholder="stringa 42 turni..." />
+            </div>
+            <div>
+              <label>Squadra C</label>
+              <input id="sqC" class="mono" placeholder="stringa 42 turni..." />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>Squadra D</label>
+              <input id="sqD" class="mono" placeholder="stringa 42 turni..." />
+            </div>
+            <div>
+              <label>Squadra E</label>
+              <input id="sqE" class="mono" placeholder="stringa 42 turni..." />
+            </div>
+            <div>
+              <label>Squadra F</label>
+              <input id="sqF" class="mono" placeholder="stringa 42 turni..." />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" id="btnCreate">Crea schema</button>
+          </div>
+
+          <div class="status" id="createStatus"></div>
+        </div>
+      </details>
+
+    </div>
+  </section>
+</main>
+
+<script>
+  const API_BASE = (typeof window!=="undefined" && window.API_BASE) ? window.API_BASE : "https://turni-api-v2.mecfed.workers.dev";
+  const API = {
+    schemas: API_BASE + "/api/schemas",
+    active: API_BASE + "/api/schema/active",
+    activate: API_BASE + "/api/schemas/activate"
+  };
+
+  const TURNI = ["M","P","N","ON"];
+
+  let schemi = [];
+  let current = null;
+
+  const elList = document.getElementById("list");
+  const elCount = document.getElementById("count");
+  const elBanner = document.getElementById("activeBanner");
+
+  const elActiveFrom = document.getElementById("activeFrom");
+
+  const elSel = document.getElementById("sel");
+  const elName = document.getElementById("name");
+  const elWeek1 = document.getElementById("week1");
+  const elSite = document.getElementById("site");
+  const elActiveRO = document.getElementById("activeRO");
+  const elTimesBody = document.getElementById("timesBody");
+  const elStatus = document.getElementById("status");
+
+  // create
+  const elNewName = document.getElementById("newName");
+  const elNewWeek1 = document.getElementById("newWeek1");
+  const elNewSite = document.getElementById("newSite");
+  const elSqA = document.getElementById("sqA");
+  const elSqB = document.getElementById("sqB");
+  const elSqC = document.getElementById("sqC");
+  const elSqD = document.getElementById("sqD");
+  const elSqE = document.getElementById("sqE");
+  const elSqF = document.getElementById("sqF");
+  const elCreateStatus = document.getElementById("createStatus");
+
+  function setStatus(msg, ok=true){
+    elStatus.textContent = msg || "";
+    elStatus.className = "status " + (ok ? "ok" : "err");
+  }
+  function setCreateStatus(msg, ok=true){
+    elCreateStatus.textContent = msg || "";
+    elCreateStatus.className = "status " + (ok ? "ok" : "err");
+  }
+
+  function isActive(v){ return v === 1 || v === true || String(v) === "1" || String(v).toLowerCase() === "true"; }
+  function validDMY(s){ return /^\d{2}-\d{2}-\d{4}$/.test(String(s||"").trim()); }
+
+  async function getJson(url){
+    const r = await fetch(url, { headers:{ "Accept":"application/json" } });
+    if(!r.ok){
+      const t = await r.text().catch(()=> "");
+      throw new Error(`GET ${r.status} ${t}`.trim());
+    }
+    return r.json();
+  }
+  async function postJson(url, body){
+    const r = await fetch(url, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Accept":"application/json" },
+      body: JSON.stringify(body)
+    });
+    if(!r.ok){
+      const t = await r.text().catch(()=> "");
+      throw new Error(`POST ${r.status} ${t}`.trim());
+    }
+    return r.json().catch(()=> ({}));
+  }
+  async function putJson(url, body){
+    const r = await fetch(url, {
+      method:"PUT",
+      headers:{ "Content-Type":"application/json", "Accept":"application/json" },
+      body: JSON.stringify(body)
+    });
+    if(!r.ok){
+      const t = await r.text().catch(()=> "");
+      throw new Error(`PUT ${r.status} ${t}`.trim());
+    }
+    return r.json().catch(()=> ({}));
+  }
+  async function delSchema(id){
+    const r = await fetch(API.schemas + `?id=${encodeURIComponent(id)}`, { method:"DELETE" });
+    if(!r.ok){
+      const t = await r.text().catch(()=> "");
+      throw new Error(`DELETE ${r.status} ${t}`.trim());
+    }
+    return r.json().catch(()=> ({}));
+  }
+
+  function normTimes(times){
+    const out = {};
+    if(!times || typeof times !== "object") return out;
+    for(const [k,v] of Object.entries(times)){
+      if(!k) continue;
+      if(v && typeof v === "object"){
+        out[k.toUpperCase()] = {
+          start: String(v.start||"").trim(),
+          end: String(v.end||"").trim(),
+          ...(v.break !== undefined && v.break !== null && String(v.break).trim() !== "" ? { break: Number(v.break) } : {})
+        };
+      }
+    }
+    return out;
+  }
+
+  function renderTimes(times){
+    elTimesBody.innerHTML = "";
+    const t = normTimes(times);
+    for(const code of TURNI){
+      const v = t[code] || {};
+      const tr = document.createElement("tr");
+      tr.className = "trow";
+      tr.innerHTML = `
+        <td><strong>${code}</strong></td>
+        <td><input data-start="${code}" value="${v.start||""}" placeholder="07:00"></td>
+        <td><input data-end="${code}" value="${v.end||""}" placeholder="15:00"></td>
+        <td><input data-break="${code}" value="${v.break ?? ""}" placeholder="45" ${code!=="ON" ? "disabled" : ""}></td>
+      `;
+      elTimesBody.appendChild(tr);
+    }
+  }
+
+  function readTimesFromUI(){
+    const out = {};
+    for(const code of TURNI){
+      const start = elTimesBody.querySelector(`input[data-start="${code}"]`).value.trim();
+      const end = elTimesBody.querySelector(`input[data-end="${code}"]`).value.trim();
+      const brkRaw = elTimesBody.querySelector(`input[data-break="${code}"]`).value.trim();
+
+      if(start || end || brkRaw){
+        out[code] = { start, end };
+        if(code === "ON" && brkRaw !== ""){
+          const n = Number(brkRaw);
+          if(!Number.isFinite(n) || n < 0) throw new Error("Pausa ON non valida (minuti).");
+          out[code].break = n;
+        }
+      }
+    }
+    return out;
+  }
+
+  function renderList(){
+    elCount.textContent = `${schemi.length}`;
+    elList.innerHTML = "";
+
+    for(const s of schemi){
+      const div = document.createElement("div");
+      div.className = "item" + (current && current.id === s.id ? " active" : "");
+      const act = isActive(s.active);
+      div.innerHTML = `
+        <div class="top">
+          <div style="font-weight:900">${s.name || "(senza nome)"}</div>
+          ${act ? `<span class="badge on">ATTIVO</span>` : `<span class="badge">non attivo</span>`}
+          ${s.site ? `<span class="badge site">${s.site}</span>` : ``}
+        </div>
+        <div class="sub">
+          <span class="muted mono">id: ${s.id}</span>
+          ${s.week1 ? `<span class="muted">week1: ${s.week1}</span>` : ``}
+        </div>
+      `;
+      div.onclick = () => selectSchema(s.id);
+      elList.appendChild(div);
+    }
+  }
+
+  function fill(s){
+    current = s;
+    elSel.textContent = s ? `id: ${s.id}` : "Nessuno selezionato";
+    elName.value = s?.name || "";
+    elWeek1.value = s?.week1 || "";
+    elSite.value = s?.site || "";
+    elActiveRO.textContent = s ? (isActive(s.active) ? "Attivo: SÌ" : "Attivo: NO") : "";
+    renderTimes(s?.times || {});
+    renderList();
+  }
+
+  function selectSchema(id){
+    const s = schemi.find(x => x.id === id);
+    if(s) fill(s);
+  }
+
+  async function loadActive(){
+    try{
+      const a = await getJson(API.active);
+      elBanner.style.display = "block";
+      elBanner.innerHTML = `<strong>Schema attivo (oggi):</strong> ${a.name || "(senza nome)"} <span class="muted">— id ${a.id} — week1 ${a.week1 || ""}</span>`;
+    }catch(e){
+      elBanner.style.display = "block";
+      elBanner.textContent = "Attenzione: non riesco a leggere /api/schema/active";
+    }
+  }
+
+  async function loadAll(){
+    setStatus("", true);
+    await loadActive();
+
+    const data = await getJson(API.schemas);
+    schemi = (Array.isArray(data) ? data : (data.schemas || [])).map(s => ({
+      ...s,
+      times: normTimes(s.times || {})
+    }));
+
+    // selezione: attivo -> primo
+    if(!current){
+      const act = schemi.find(x => isActive(x.active));
+      if(act) fill(act);
+      else if(schemi[0]) fill(schemi[0]);
+      else fill(null);
+    }else{
+      const ref = schemi.find(x => x.id === current.id);
+      if(ref) fill(ref); else fill(null);
+    }
+  }
+
+  // actions
+  document.getElementById("btnReload").onclick = loadAll;
+
+  document.getElementById("btnSave").onclick = async () => {
+    if(!current) return setStatus("Seleziona uno schema.", false);
+    try{
+      const times = readTimesFromUI();
+      const body = {
+        id: current.id,
+        name: elName.value.trim(),
+        week1: elWeek1.value.trim(),
+        site: elSite.value.trim(),
+        times
+      };
+      if(!body.name || !body.week1) return setStatus("Nome e Week1 obbligatori.", false);
+      if(!validDMY(body.week1)) return setStatus("Week1 non valida (DD-MM-YYYY).", false);
+
+      setStatus("Salvo…", true);
+      await putJson(API.schemas, body);
+      setStatus("Salvato ✅", true);
+      await loadAll();
+    }catch(e){
+      setStatus(e.message, false);
+    }
+  };
+
+  document.getElementById("btnMakeActive").onclick = async () => {
+    if(!current) return setStatus("Seleziona uno schema.", false);
+    try{
+      // se già attivo "oggi" lo lasciamo stare (ma puoi comunque schedularlo nel futuro con una data diversa)
+      let fd = (elActiveFrom?.value || "").trim();
+      if(!fd){
+        const now = new Date();
+        fd = `${String(now.getDate()).padStart(2,"0")}-${String(now.getMonth()+1).padStart(2,"0")}-${now.getFullYear()}`;
+      }
+      if(!validDMY(fd)) return setStatus("Attivo da non valida (DD-MM-YYYY).", false);
+
+      setStatus(`Imposto attivo dal ${fd}…`, true);
+      await postJson(API.activate, { id: current.id, from_date: fd });
+      setStatus(`Impostato come attivo dal ${fd} ✅`, true);
+      await loadAll();
+    }catch(e){
+      setStatus(e.message, false);
+    }
+  };
+
+  document.getElementById("btnDelete").onclick = async () => {
+    if(!current) return setStatus("Seleziona uno schema.", false);
+    if(isActive(current.active)) return setStatus("Non puoi eliminare lo schema attivo (oggi).", false);
+    if(!confirm(`Eliminare lo schema "${current.name}"?`)) return;
+    try{
+      setStatus("Elimino…", true);
+      await delSchema(current.id);
+      current = null;
+      setStatus("Eliminato ✅", true);
+      await loadAll();
+    }catch(e){
+      setStatus(e.message, false);
+    }
+  };
+
+  // create
+  document.getElementById("btnCopyFromSelected").onclick = () => {
+    if(!current) return setCreateStatus("Seleziona uno schema da copiare.", false);
+    elSqA.value = current.squads?.A || "";
+    elSqB.value = current.squads?.B || "";
+    elSqC.value = current.squads?.C || "";
+    elSqD.value = current.squads?.D || "";
+    elSqE.value = current.squads?.E || "";
+    elSqF.value = current.squads?.F || "";
+    setCreateStatus("Copiato ✅", true);
+  };
+
+  document.getElementById("btnCreate").onclick = async () => {
+    try{
+      const name = elNewName.value.trim();
+      const week1 = elNewWeek1.value.trim();
+      const site = elNewSite.value.trim();
+      if(!name || !week1) return setCreateStatus("Nome + Week1 obbligatori.", false);
+      if(!validDMY(week1)) return setCreateStatus("Week1 non valida (DD-MM-YYYY).", false);
+
+      // orari: per un nuovo schema lasciamo vuoti -> li imposti dopo per quella centrale
+      const times = {};
+
+      const squads = {
+        A: elSqA.value.trim(),
+        B: elSqB.value.trim(),
+        C: elSqC.value.trim(),
+        D: elSqD.value.trim(),
+        E: elSqE.value.trim(),
+        F: elSqF.value.trim()
+      };
+
+      setCreateStatus("Creo schema…", true);
+      const res = await postJson(API.schemas, { name, week1, site, squads, times });
+      setCreateStatus(`Creato ✅ (id ${res.id || "?"})`, true);
+
+      await loadAll();
+
+      // reset
+      elNewName.value = ""; elNewWeek1.value = ""; elNewSite.value = "";
+    }catch(e){
+      setCreateStatus(e.message, false);
+    }
+  };
+
+  // init
+  loadAll();
+</script>
+
+<div class="bottomNav">
+  <a href="schemi.html" class="">Schemi</a>
+  <a href="index.html" class="">Calendario</a>
+  <a href="mese.html" class="">Mese</a>
+  <a href="riepilogo.html" class="">Riepilogo</a>
+  <a href="dati.html" class="">Dati</a>
+</div>
+
+</body>
+</html>

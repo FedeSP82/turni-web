@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controllo Cartellino</title>
+<style>
+:root{--bg:#0f1115;--text:#eaeaea;--card:#0f131d;--border:#1f2638;--muted:rgba(255,255,255,.72);--muted2:rgba(255,255,255,.55);--accent:#6aa6ff);}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;padding-bottom:88px}
+header{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(15,17,21,.90);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
+header h1{margin:0;font-size:15px;font-weight:950;flex:1;text-align:center}
+header a,header button{background:#131826;color:#fff;border:1px solid #2b3550;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:950;min-width:44px;min-height:44px;text-decoration:none}
+.wrap{max-width:1100px;margin:0 auto;padding:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:0 8px 22px rgba(0,0,0,.14);margin-bottom:12px}
+.hrow{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-bottom:8px}
+h2{margin:0 0 8px 0;font-size:16px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.subgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(max-width:800px){.grid,.subgrid{grid-template-columns:1fr}}
+.kpi{padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.kpi .label{font-size:12px;color:var(--muted2);font-weight:800}
+.kpi .value{font-size:24px;font-weight:1000;margin-top:4px}
+.kpi small{display:block;color:var(--muted2);margin-top:4px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:6px;min-width:140px;flex:1}
+label{font-size:12px;color:var(--muted2);font-weight:800}
+input,textarea{width:100%;background:#0f1524;color:#fff;border:1px solid #2b3550;border-radius:12px;padding:11px 12px;min-height:44px}
+textarea{min-height:160px;resize:vertical}
+.btn{background:#131826;color:#fff;border:1px solid #2b3550;border-radius:12px;padding:11px 14px;cursor:pointer;font-weight:950;min-height:44px}
+.btn.primary{background:#173153;border-color:#2e5d9e}
+.btn.ok{background:#143427;border-color:#23553b}
+.btn.ghost{background:transparent}
+.muted{color:var(--muted2)}
+.notice{padding:10px 12px;border-radius:12px;background:rgba(106,166,255,.08);border:1px solid rgba(106,166,255,.25);font-size:13px}
+.tableWrap{overflow:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;vertical-align:top;font-size:14px}
+th{font-size:12px;color:var(--muted2);font-weight:900;white-space:nowrap}
+.status-ok{color:#8ff0bd;font-weight:900}
+.status-warn{color:#ffd36d;font-weight:900}
+.status-err{color:#ff8b8b;font-weight:900}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:900;border:1px solid rgba(255,255,255,.1)}
+.badge.b96{background:rgba(61,220,151,.12);color:#8ff0bd}
+.badge.bass{background:rgba(247,183,49,.12);color:#ffd36d}
+.badge.bfr{background:rgba(106,166,255,.12);color:#a9ccff}
+.badge.empty{background:rgba(255,255,255,.06);color:#cfd5df}
+.bottomNav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 10px;background:rgba(9,12,20,.92);border-top:1px solid rgba(255,255,255,.08);backdrop-filter:blur(10px);z-index:50}
+.bottomNav a{flex:1;min-width:0;background:#131826;color:#fff;border:1px solid #2b3550;border-radius:14px;padding:10px 6px;text-align:center;text-decoration:none;font-weight:950;font-size:12px}
+.bottomNav a.active{outline:2px solid rgba(106,166,255,.45)}
+</style>
+<script>window.API_BASE=window.API_BASE||"https://turni-api-v2.mecfed.workers.dev";</script>
+</head>
+<body>
+<header>
+  <a href="riepilogo.html">←</a>
+  <h1>Controllo Cartellino</h1>
+  <button id="btnLoadApp" type="button">Carica app</button>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label for="anno">Anno</label>
+        <input id="anno" type="number" min="2020" max="2100">
+      </div>
+      <div class="field">
+        <label for="mese">Mese</label>
+        <input id="mese" type="number" min="1" max="12">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn primary" id="btnConfronta" type="button">Confronta</button>
+      </div>
+    </div>
+    <div class="notice">
+      La colonna <b>App</b> viene caricata automaticamente dai dati reali salvati nella tua app tramite <code>/api/days</code>.
+      Nel riquadro <b>Cartellino</b> incolla il mese nel formato <code>01=96</code>, <code>05=96_ASS</code>, <code>16=66</code>.
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Cartellino</h2>
+      <div class="subgrid">
+        <div class="kpi"><div class="label">96</div><div class="value" id="c96">0</div></div>
+        <div class="kpi"><div class="label">96_ASS</div><div class="value" id="c96a">0</div></div>
+        <div class="kpi"><div class="label">FR66</div><div class="value" id="c66">0</div></div>
+        <div class="kpi"><div class="label">Totale €</div><div class="value" id="ctot">0</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>App</h2>
+      <div class="subgrid">
+        <div class="kpi"><div class="label">96</div><div class="value" id="a96">0</div></div>
+        <div class="kpi"><div class="label">96_ASS</div><div class="value" id="a96a">0</div></div>
+        <div class="kpi"><div class="label">FR66</div><div class="value" id="a66">0</div></div>
+        <div class="kpi"><div class="label">Totale €</div><div class="value" id="atot">0</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Differenze</h2>
+      <div class="subgrid">
+        <div class="kpi"><div class="label">Errori</div><div class="value" id="errCount">0</div><small>manca in app</small></div>
+        <div class="kpi"><div class="label">Warning</div><div class="value" id="warnCount">0</div><small>diverso / extra</small></div>
+        <div class="kpi"><div class="label">Diff €</div><div class="value" id="diffTot">0</div></div>
+        <div class="kpi"><div class="label">Stato</div><div class="value" id="statoMese">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Cartellino</h2>
+    <textarea id="cartellinoInput" placeholder="01=96&#10;02=66&#10;05=96_ASS"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>App (caricato automaticamente)</h2>
+    <textarea id="appInput" readonly></textarea>
+  </div>
+
+  <div class="card">
+    <h2>Confronto giorno per giorno</h2>
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Giorno</th>
+            <th>App</th>
+            <th>Cartellino</th>
+            <th>Esito</th>
+            <th>Nota</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="5" class="muted">Carica i dati app e premi Confronta.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<nav class="bottomNav">
+  <a href="mese.html">Mese</a>
+  <a href="riepilogo.html">Riepilogo</a>
+  <a class="active" href="controllo_cartellino.html">Cartellino</a>
+</nav>
+
+<script>
+(function(){
+  const API_BASE = window.API_BASE || "";
+  const $ = (id) => document.getElementById(id);
+  const now = new Date();
+  $("anno").value = now.getFullYear();
+  $("mese").value = now.getMonth() + 1;
+
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function fromTo(year, month){
+    const mm = pad(month);
+    const last = new Date(year, month, 0).getDate();
+    return { from: `${year}-${mm}-01`, to: `${year}-${mm}-${pad(last)}` };
+  }
+
+  function parseText(text){
+    const out = {};
+    String(text || "").split(/\n+/).forEach(line => {
+      const raw = line.trim();
+      if (!raw) return;
+      const parts = raw.split("=");
+      const key = String(parts[0] || "").trim();
+      const val = String(parts[1] || "").trim().toUpperCase();
+      if (key) out[key] = val;
+    });
+    return out;
+  }
+
+  function euro(type){
+    if (type === "96" || type === "96_ASS") return 96;
+    if (type === "66" || type === "FR66") return 66;
+    return 0;
+  }
+
+  function deriveDisplayForf(day){
+    const fid = String(day?.forfettario_id || "").trim().toUpperCase();
+    if (fid) return fid === "FR32" ? "66" : fid;
+    const trip = String(day?.trip_type || "").trim().toUpperCase();
+    const ret = Number(day?.trip_return || 0) ? 1 : 0;
+    if (ret) return "66";
+    if (trip === "96" || trip === "G5AF" || trip.includes("PERNOTTO")) return "96";
+    if (trip === "96_ASS" || trip === "G5HF") return "96_ASS";
+    if (trip === "66" || trip === "G5FF" || trip.includes("SENZA PERNOTTO")) return "66";
+    return "";
+  }
+
+  function appMapFromDays(days){
+    const out = {};
+    (days || []).forEach(day => {
+      const dd = String(day.date || "").slice(8,10);
+      out[dd] = deriveDisplayForf(day);
+    });
+    return out;
+  }
+
+  function mapToText(map){
+    return Object.keys(map).sort().map(k => `${k}=${map[k] || ""}`).join("\n");
+  }
+
+  function countTypes(map){
+    let c96=0,c96a=0,c66=0,total=0,rows=0;
+    Object.values(map).forEach(v => {
+      if (!v) return;
+      rows++;
+      if (v === "96") c96++;
+      if (v === "96_ASS") c96a++;
+      if (v === "66" || v === "FR66") c66++;
+      total += euro(v);
+    });
+    return { c96, c96a, c66, total, rows };
+  }
+
+  async function loadAppData(){
+    const year = Number($("anno").value);
+    const month = Number($("mese").value);
+    const range = fromTo(year, month);
+    const res = await fetch(`${API_BASE}/api/days?from=${range.from}&to=${range.to}`);
+    if (!res.ok) throw new Error(`Errore API /api/days: ${res.status}`);
+    const data = await res.json();
+    const map = appMapFromDays(data.days || []);
+    $("appInput").value = mapToText(map);
+    return map;
+  }
+
+  function setStats(prefix, s){
+    $(prefix+"96").textContent = s.c96;
+    $(prefix+"96a").textContent = s.c96a;
+    $(prefix+"66").textContent = s.c66;
+    $(prefix+"tot").textContent = s.total.toFixed(2).replace(".", ",");
+  }
+
+  function badge(v){
+    if (!v) return '<span class="badge empty">—</span>';
+    if (v === "96") return '<span class="badge b96">96</span>';
+    if (v === "96_ASS") return '<span class="badge bass">96_ASS</span>';
+    if (v === "66" || v === "FR66") return '<span class="badge bfr">FR66</span>';
+    return `<span class="badge">${v}</span>`;
+  }
+
+  function compare(){
+    const cMap = parseText($("cartellinoInput").value);
+    const aMap = parseText($("appInput").value);
+
+    const cStats = countTypes(cMap);
+    const aStats = countTypes(aMap);
+    setStats("c", cStats);
+    setStats("a", aStats);
+
+    const allKeys = Array.from(new Set([...Object.keys(cMap), ...Object.keys(aMap)])).sort();
+    let err = 0, warn = 0;
+    let rows = "";
+
+    allKeys.forEach(k => {
+      const cv = cMap[k] || "";
+      const av = aMap[k] || "";
+      let statusClass = "status-ok";
+      let status = "OK";
+      let note = "coerente";
+
+      if (cv === av) {
+        status = "OK";
+        note = "coerente";
+      } else if (!av && cv) {
+        statusClass = "status-err";
+        status = "ERRORE";
+        note = "manca in app";
+        err++;
+      } else if (av && !cv) {
+        statusClass = "status-warn";
+        status = "WARN";
+        note = "extra app";
+        warn++;
+      } else {
+        statusClass = "status-warn";
+        status = "WARN";
+        note = "tipo diverso";
+        warn++;
+      }
+
+      rows += `<tr>
+        <td>${k}</td>
+        <td>${badge(av)}</td>
+        <td>${badge(cv)}</td>
+        <td class="${statusClass}">${status}</td>
+        <td>${note}</td>
+      </tr>`;
+    });
+
+    $("tableBody").innerHTML = rows || '<tr><td colspan="5" class="muted">Nessun dato da confrontare.</td></tr>';
+    $("errCount").textContent = err;
+    $("warnCount").textContent = warn;
+
+    const diff = aStats.total - cStats.total;
+    $("diffTot").textContent = diff.toFixed(2).replace(".", ",");
+    $("statoMese").textContent = err ? "KO" : (warn ? "ATT" : "OK");
+  }
+
+  $("btnLoadApp").addEventListener("click", async () => {
+    const btn = $("btnLoadApp");
+    const old = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Carico...";
+    try {
+      await loadAppData();
+    } catch (e) {
+      alert(e.message || "Errore caricamento app");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = old;
+    }
+  });
+
+  $("btnConfronta").addEventListener("click", async () => {
+    if (!$("appInput").value.trim()) {
+      try { await loadAppData(); } catch (e) {}
+    }
+    compare();
+  });
+})();
+</script>
+</body>
+</html>

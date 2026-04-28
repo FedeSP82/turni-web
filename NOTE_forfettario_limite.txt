@@ -1,0 +1,1 @@
+Regola: Forfettario (FR66/FR32) selezionabile SOLO se Rientro=SI. Limite 3 al mese. Implementato in mese_completo.html, riepilogo.html e (best-effort) popup giorno in calendar_v0.js.

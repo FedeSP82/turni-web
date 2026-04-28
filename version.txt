@@ -1,0 +1,2 @@
+v164 (fix numero voci spese: conta le voci effettive, non i giorni)
+v168 - ore viaggio nel giorno calendario

@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dati trasferta</title>
+<style>
+:root{
+  --bg:#0f1115; --text:#eaeaea; --card:#0f131d; --border:#1f2638; --muted:rgba(255,255,255,.72);
+  --btn:#131826; --btnb:#2b3550; --accent:#1d63ff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;padding-bottom:78px;}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:rgba(15,17,21,.90);backdrop-filter: blur(10px);border-bottom:1px solid rgba(255,255,255,.06);}
+header h1{margin:0;font-size:15px;font-weight:950;flex:1;text-align:center;}
+header a{background:var(--btn);color:#fff;border:1px solid var(--btnb);border-radius:12px;padding:10px 12px;text-decoration:none;font-weight:950;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+.wrap{max-width:980px;margin:0 auto;padding:12px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.14);}
+h2{margin:0 0 10px;font-size:14px;font-weight:950}
+label{display:block;font-size:12px;opacity:.8;margin:10px 0 6px}
+input,select{
+  width:100%;background:rgba(10,14,26,.75);color:#fff;border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;padding:10px 10px;font-size:16px;outline:none;
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:720px){.grid2{grid-template-columns:1fr}}
+.row{display:flex;align-items:center;gap:10px;margin-top:10px}
+.btn{
+  flex:1;border-radius:14px;border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(180deg, #1d63ff 0%, #1547c8 100%);
+  color:#fff;padding:12px 10px;font-weight:950;min-height:48px;cursor:pointer;
+}
+.btn2{
+  flex:1;border-radius:14px;border:1px solid rgba(255,255,255,.12);
+  background:#131826;color:#fff;padding:12px 10px;font-weight:950;min-height:48px;cursor:pointer;
+}
+.small{font-size:12px;color:var(--muted);margin-top:10px}
+.hr{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
+.chk{display:flex;align-items:center;gap:10px;font-size:13px;opacity:.92;margin-top:10px}
+.chk input{width:20px;height:20px}
+.bottomNav{
+  position:fixed; left:0; right:0; bottom:0;
+  display:flex; gap:10px;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(9,12,20,.98);
+  border-top:1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(12px);
+  z-index:9999;
+}
+.bottomNav a{
+  flex:1;background:#131826;color:#fff;border:1px solid #2b3550;border-radius:14px;
+  padding:12px 10px;text-align:center;text-decoration:none;font-weight:950;min-height:44px;
+  display:flex;align-items:center;justify-content:center;
+}
+.bottomNav a.active{
+  background: linear-gradient(180deg, #1d63ff 0%, #1547c8 100%);
+  border-color: rgba(120,170,255,.55);
+}
+</style>
+<script>
+  window.API_BASE = "https://turni-api-v2.mecfed.workers.dev";
+</script>
+</head>
+<body>
+<header>
+  <a href="dati.html" aria-label="Indietro">◀</a>
+  <h1>Dati trasferta</h1>
+  <label>Valido dal (DD-MM-YYYY)</label>
+  <input id="from_date" placeholder="01-01-2025" inputmode="numeric">
+  <div class="hint">Inserisci la data di decorrenza: le modifiche valgono da quella data in poi.</div>
+
+  <a href="riepilogo.html" aria-label="Riepilogo">📊</a>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Importi</h2>
+
+    <div class="grid2">
+      <div>
+        <label>Trasferta 96 (€)</label>
+        <input id="t96" inputmode="decimal" placeholder="96">
+      </div>
+      <div>
+        <label>Trasferta 66 (€)</label>
+        <input id="t66" inputmode="decimal" placeholder="66">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label>Trasferta 75% (72) (€)</label>
+        <input id="t72" inputmode="decimal" placeholder="72">
+      </div>
+      <div>
+        <label>Trasferta 75% (49,50) (€)</label>
+        <input id="t49" inputmode="decimal" placeholder="49,5">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label>Rientro FR66 (€)</label>
+        <input id="fr66" inputmode="decimal" placeholder="66">
+      </div>
+      <div>
+        <label>Rientro FR32 (€)</label>
+        <input id="fr32" inputmode="decimal" placeholder="32">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label>Pranzo (€)</label>
+        <input id="pranzo" inputmode="decimal" placeholder="15,80">
+      </div>
+      <div>
+        <label>—</label>
+        <div class="small">Il riepilogo usa questi importi per i totali.</div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <h2>Limiti mensili</h2>
+
+    <div class="grid2">
+      <div>
+        <label>Rientri (FR66/FR32)</label>
+        <input id="lim_rientri" inputmode="numeric" placeholder="3">
+      </div>
+      <div>
+        <label>Assenze 104</label>
+        <input id="lim_104" inputmode="numeric" placeholder="3">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label>Trasferte con assenza (flag)</label>
+        <input id="lim_trasfAss" inputmode="numeric" placeholder="3">
+      </div>
+      <div>
+        <label>Rientri con assenza (flag)</label>
+        <input id="lim_forfAss" inputmode="numeric" placeholder="3">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label>Forfettari su assenza (96/66)</label>
+        <input id="lim_forfAssenza" inputmode="numeric" placeholder="3">
+      </div>
+      <div>
+        <label>—</label>
+        <div class="small">Se vuoi, questi limiti li useremo anche per bloccare le tendine nel giorno.</div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <h2>Imponibile (solo per riepilogo)</h2>
+    <div class="chk"><input id="imp72" type="checkbox"> <span>Trasferta 75% (72) è <b>imponibile</b></span></div>
+    <div class="chk"><input id="imp49" type="checkbox"> <span>Trasferta 75% (49,50) è <b>imponibile</b></span></div>
+
+    <div class="row">
+      <button class="btn" id="save">Salva</button>
+      <button class="btn2" id="reload">Ricarica</button>
+    </div>
+    <div class="small" id="status">—</div>
+  </div>
+</div>
+
+<div class="bottomNav">
+  <a href="schemi.html" class="">Schemi</a>
+  <a href="index.html" class="">Calendario</a>
+  <a href="mese.html" class="">Mese</a>
+  <a href="riepilogo.html" class="">Riepilogo</a>
+  <a href="dati.html" class="">Dati</a>
+</div>
+
+<script>
+function todayDMY(){ const d=new Date(); const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=d.getFullYear(); return `${dd}-${mm}-${yy}`; }
+
+const API_BASE = window.API_BASE || "https://turni-api-v2.mecfed.workers.dev";
+const DEFAULTS = {
+  rates:{ t96:96, t66:66, t72:72, t49:49.5, fr66:66, fr32:32, pranzo:15.8 },
+  limits:{ rientri:3, ass104:3, trasfAss:3, forfAss:3, forfAssenza:3 },
+  imponibile:{ t72:true, t49:true }
+};
+
+function parseEuro(v){
+  const s = String(v||"").trim().replace(",",".");
+  if(!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+function parseIntOr(v, fallback){
+  const n = Number(String(v||"").trim());
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : fallback;
+}
+function E(id){ return document.getElementById(id); }
+
+function setForm(s){
+  const r = s.rates||{};
+  E("t96").value = (r.t96 ?? DEFAULTS.rates.t96);
+  E("t66").value = (r.t66 ?? DEFAULTS.rates.t66);
+  E("t72").value = (r.t72 ?? DEFAULTS.rates.t72);
+  E("t49").value = (r.t49 ?? DEFAULTS.rates.t49);
+  E("fr66").value = (r.fr66 ?? DEFAULTS.rates.fr66);
+  E("fr32").value = (r.fr32 ?? DEFAULTS.rates.fr32);
+  E("pranzo").value = (r.pranzo ?? DEFAULTS.rates.pranzo);
+
+  const l = s.limits||{};
+  E("lim_rientri").value = (l.rientri ?? DEFAULTS.limits.rientri);
+  E("lim_104").value = (l.ass104 ?? DEFAULTS.limits.ass104);
+  E("lim_trasfAss").value = (l.trasfAss ?? DEFAULTS.limits.trasfAss);
+  E("lim_forfAss").value = (l.forfAss ?? DEFAULTS.limits.forfAss);
+  E("lim_forfAssenza").value = (l.forfAssenza ?? DEFAULTS.limits.forfAssenza);
+
+  const imp = s.imponibile||{};
+  E("imp72").checked = (typeof imp.t72 === "boolean") ? imp.t72 : DEFAULTS.imponibile.t72;
+  E("imp49").checked = (typeof imp.t49 === "boolean") ? imp.t49 : DEFAULTS.imponibile.t49;
+}
+
+function getForm(){
+  // Rates
+  const rates = {
+    t96:  parseEuro(E("t96")?.value)   ?? DEFAULTS.rates.t96,
+    t66:  parseEuro(E("t66")?.value)   ?? DEFAULTS.rates.t66,
+    t72:  parseEuro(E("t72")?.value)   ?? DEFAULTS.rates.t72,
+    t49:  parseEuro(E("t49")?.value)   ?? DEFAULTS.rates.t49,
+    fr66: parseEuro(E("fr66")?.value)  ?? DEFAULTS.rates.fr66,
+    fr32: parseEuro(E("fr32")?.value)  ?? DEFAULTS.rates.fr32,
+    pranzo: parseEuro(E("pranzo")?.value) ?? DEFAULTS.rates.pranzo,
+  };
+
+  // Limits
+  const limits = {
+    rientri:  parseIntOr(E("lim_rientri")?.value, DEFAULTS.limits.rientri),
+    ass104:   parseIntOr(E("lim_104")?.value, DEFAULTS.limits.ass104),
+    trasfAss: parseIntOr(E("lim_trasfAss")?.value, DEFAULTS.limits.trasfAss),
+    forfAss:  parseIntOr(E("lim_forfAss")?.value, DEFAULTS.limits.forfAss),
+    forfAssenza: parseIntOr(E("lim_forfAssenza")?.value, DEFAULTS.limits.forfAssenza),
+  };
+
+  const imponibile = {
+    t72: !!E("imp72")?.checked,
+    t49: !!E("imp49")?.checked,
+  };
+
+  return { rates, limits, imponibile };
+}
+
+
+async function load(){
+  E("status").textContent = "Carico…";
+  try{
+    const r = await fetch(`${API_BASE}/api/settings/trasferta`, { headers:{ "Accept":"application/json" } });
+    const j = await r.json().catch(()=> ({}));
+    const s0 = j.settings || {};
+    // Compat: backend può restituire settings "piatto" (t96,t66,...) invece di {rates:{...}}
+    const isFlat = s0 && !s0.rates && (("t96" in s0) || ("t66" in s0) || ("t75_72" in s0) || ("t75_49_5" in s0) || ("fr66" in s0));
+    const s = isFlat
+      ? { rates: {
+          t96: Number(s0.t96 ?? s0.t96),
+          t66: Number(s0.t66 ?? s0.t66),
+          t72: Number(s0.t72 ?? s0.t75_72 ?? s0.t75_72),
+          t49: Number(s0.t49 ?? s0.t75_49_5 ?? s0.t75_49_5),
+          pranzo: Number(s0.pranzo ?? s0.pranzo),
+          fr66: Number(s0.fr66 ?? s0.fr66),
+          fr32: Number(s0.fr32 ?? s0.fr32),
+        } }
+      : s0 || DEFAULTS;
+
+    // set form
+    setForm({ 
+      ...DEFAULTS, 
+      ...s, 
+      rates:{...DEFAULTS.rates,...(s.rates||{})}, 
+      limits:{...DEFAULTS.limits,...(s.limits||{})}, 
+      imponibile:{...DEFAULTS.imponibile,...(s.imponibile||{})}
+    });
+
+    // from_date (decorrenza)
+    const fd = E("from_date");
+    if(fd){
+      fd.value = String(j.active_from_date || "").trim() || todayDMY();
+    }
+
+    // history (facoltativo)
+    const h = E("history");
+    if(h){
+      const items = Array.isArray(j.history) ? j.history : [];
+      h.innerHTML = items.slice(0,8).map(x => {
+        const d = x?.from_date || "";
+        return `<div class="histRow"><b>${d}</b> <span class="muted">${x?.updated_at ? ("• " + x.updated_at) : ""}</span></div>`;
+      }).join("") || `<div class="muted">Nessuna modifica salvata.</div>`;
+    }
+
+    E("status").textContent = "OK";
+  }catch(e){
+    console.error(e);
+    E("status").textContent = "Errore caricamento";
+  }
+}
+
+
+async function save(){
+  E("status").textContent = "Salvo…";
+  try{
+    const settings = getForm();
+    const from_date = String(E("from_date")?.value || "").trim();
+
+    if(!/^[0-9]{2}-[0-9]{2}-[0-9]{4}$/.test(from_date)){
+      E("status").textContent = "Errore: 'Valido dal' deve essere DD-MM-YYYY";
+      return;
+    }
+
+    const r = await fetch(`${API_BASE}/api/settings/trasferta`, {
+      method:"PUT",
+      headers:{ "Content-Type":"application/json", "Accept":"application/json" },
+      body: JSON.stringify({ from_date, settings })
+    });
+    const txt = await r.text();
+    if(!r.ok) throw new Error(txt || String(r.status));
+    E("status").textContent = "Salvato ✅";
+    load();
+  }catch(e){
+    console.error(e);
+    E("status").textContent = "Errore salvataggio: " + (e?.message || e);
+  }
+}
+
+
+  // bootstrap (added in v129)
+  window.addEventListener("load", () => {
+    try { load(); } catch(e){ console.error(e); }
+    const btn = document.getElementById("save");
+    if(btn) btn.addEventListener("click", (ev) => { ev.preventDefault(); save(); });
+  });
+</script>

@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mese completo</title>
+<style>
+:root{
+  --bg:#0f1115;
+  --text:#eaeaea;
+  --card:#0f131d;
+  --border:#1f2638;
+  --muted:rgba(255,255,255,.72);
+  --muted2:rgba(255,255,255,.55);
+  --danger:rgba(255,107,107,.75);
+}
+*{ box-sizing:border-box; }
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  padding-bottom:78px;
+}
+header{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px;
+  background:rgba(15,17,21,.90);
+  backdrop-filter: blur(10px);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+header h1{
+  margin:0; font-size:15px; font-weight:950; flex:1; text-align:center;
+}
+header button{
+  background:#131826; color:#fff; border:1px solid #2b3550; border-radius:12px;
+  padding:10px 12px; cursor:pointer; font-weight:950; min-width:44px; min-height:44px;
+}
+.wrap{ max-width:980px; margin:0 auto; padding:10px 10px 18px; }
+
+.tools{
+  display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  padding:10px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  background: rgba(255,255,255,.03);
+}
+.tools .pill{
+  display:flex; gap:8px; align-items:center;
+  padding:8px 10px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:12px;
+  background: rgba(10,14,26,.60);
+}
+label{ font-size:11px; opacity:.78; }
+input[type="month"]{
+  background: transparent; color:#fff; border:none; outline:none;
+  font-size:14px; font-weight:900;
+}
+.btn{
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:#131826;
+  color:#fff;
+  padding:12px 10px;
+  font-weight:950;
+  min-height:44px;
+  cursor:pointer;
+}
+.btn.primary{
+  background: linear-gradient(180deg, #1d63ff 0%, #1547c8 100%);
+  border-color: rgba(120,170,255,.55);
+}
+#status{ margin:10px 2px 0; font-size:12px; opacity:.85; color:var(--muted); }
+
+.tableWrap{
+  margin-top:10px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  overflow:auto; /* scroll interno per sticky header */
+  /* Desktop: quasi full height, lascia solo spazio minimo per header+tools */
+  max-height: calc(100dvh - 64px - 86px - 12px);
+}
+@supports not (height: 100dvh){
+  .tableWrap{ max-height: calc(100vh - 64px - 86px - 12px); }
+}
+
+/* Desktop table */
+table{border-collapse:collapse; table-layout:fixed; width:100%; border-collapse:collapse; font-size:13px; }
+
+
+
+@media (max-width: 520px){
+  .tableWrap{ max-height:none; }
+}
+
+
+thead th{
+  position: sticky;
+  top: 0; /* dentro tableWrap */
+  z-index: 20;
+  background: rgba(15,17,21,.98);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 6px 12px rgba(0,0,0,.35);
+}
+
+
+.mutedForf{ opacity:.45; }
+
+.tableWrap table{
+  table-layout: fixed;
+}
+.tableWrap thead th,
+.tableWrap tbody td{
+  vertical-align: middle;
+}
+.tableWrap tbody tr:first-child td{
+  padding-top: 10px;
+}
+
+/* Allineamento header con contenuti colonne */
+.tableWrap thead th{ 
+  text-align:left;
+  padding:8px 8px;
+}
+.tableWrap tbody td{
+  padding:8px 8px;
+}
+/* Colonne check: centra */
+.tableWrap thead th:nth-child(5),
+.tableWrap thead th:nth-child(7),
+.tableWrap thead th:nth-child(8),
+.tableWrap tbody td:nth-child(5),
+.tableWrap tbody td:nth-child(7),
+.tableWrap tbody td:nth-child(8){
+  text-align:center;
+}
+
+
+/* Bottom navigation (sempre visibile) */
+.bottomNav{
+  position:fixed; left:0; right:0; bottom:0;
+  display:flex; gap:10px;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(9,12,20,.98);
+  border-top:1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(12px);
+  z-index:9999; /* sopra tutto */
+  box-shadow: 0 -10px 24px rgba(0,0,0,.35);
+}
+.bottomNav a{
+  flex:1;
+  background:#131826;
+  color:#fff;
+  border:1px solid #2b3550;
+  border-radius:14px;
+  padding:12px 10px;
+  text-align:center;
+  text-decoration:none;
+  font-weight:950;
+  min-height:44px;
+  display:flex; align-items:center; justify-content:center;
+}
+.bottomNav a.active{
+  background: linear-gradient(180deg, #1d63ff 0%, #1547c8 100%);
+  border-color: rgba(120,170,255,.55);
+}
+
+.flagAbsRow td{
+  background: rgba(255, 200, 0, 0.08);
+}
+.flagAbsRow td:first-child{
+  box-shadow: inset 4px 0 0 rgba(255, 200, 0, 0.55);
+}
+.limitWarn{
+  outline: 2px solid rgba(255, 80, 80, .6);
+  outline-offset: -2px;
+}
+
+.tdFlag{display:flex;align-items:center;justify-content:center}
+
+.clockDot{
+  font-size: 12px;
+  line-height: 1;
+  opacity: .9;
+}
+.topRow{
+  display:flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+</style>
+
+
+<script>
+  window.__MESE_COMPLETO_VERSION = "v51";
+  console.log("MESE_COMPLETO_VERSION v52");
+
+function isRientro(v){ return ['FR66','FR32'].includes(String(v||'').toUpperCase()); }
+
+function validateRientriMonth(rows){
+  let count=0;
+  for(const r of rows){ 
+  for(const r of rows){
+    
+  }
+  return true;
+}
+
+</script>
+
+</head>
+<body>
+<header>
+  <button id="prev" aria-label="Mese precedente">◀</button>
+  <h1 id="title">Mese completo</h1>
+  <button id="next" aria-label="Mese successivo">▶</button>
+</header>
+<div id="limitBanner" style="display:none;margin:10px auto;max-width:1100px;padding:10px 12px;border-radius:12px;background:rgba(255,120,0,.12);border:1px solid rgba(255,120,0,.35);color:#fff;"></div>
+
+<div class="wrap">
+  <div class="tools">
+    <div class="pill">
+      <label for="monthPick">Mese</label>
+      <input id="monthPick" type="month">
+    </div>
+    <button class="btn primary" id="saveAll">Salva tutto</button>
+    <button class="btn" id="reload">Ricarica</button>
+    <span id="status"></span>
+  </div>
+
+  <div class="tableWrap">
+    <table>
+      
+<colgroup>
+  <col style="width:120px">
+  <col style="width:70px">
+  <col style="width:90px">
+  <col style="width:140px">
+  <col style="width:60px">
+  <col style="width:90px">
+  <col style="width:80px">
+  <col style="width:80px">
+  <col style="width:90px">
+</colgroup>
+
+<thead>
+        <tr>
+          <th style="width:140px">Data</th>
+          <th style="width:72px">P.T.</th>
+          <th style="width:120px">EFF.</th>
+          <th style="width:150px">Assenza</th>
+          <th style="width:90px">Flag</th>
+          <th style="width:110px">Trasf.</th>
+          <th style="width:100px">Rientro</th>
+          <th style="width:100px">Pranzo</th>
+          <th style="width:120px">Rientro</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <div id="status2"></div>
+</div>
+
+<div class="bottomNav">
+  <a href="schemi.html" class="">Schemi</a>
+  <a href="index.html" class="">Calendario</a>
+  <a href="mese.html" class="">Mese</a>
+  <a href="riepilogo.html" class="">Riepilogo</a>
+  <a href="dati.html" class="">Dati</a>
+</div>
+
+<script>
+const API_BASE = (typeof window!=="undefined" && window.API_BASE) ? window.API_BASE : "https://turni-api-v2.mecfed.workers.dev";
+const API = {
+  activeSchema: API_BASE + "/api/schema/active",
+  userTeams: API_BASE + "/api/user/teams",
+  daysRange: API_BASE + "/api/days",
+  day: API_BASE + "/api/day"
+};
+
+const elTitle = document.getElementById("title");
+const elRows = document.getElementById("rows");
+const elMonth = document.getElementById("monthPick");
+const elStatus = document.getElementById("status");
+document.getElementById("prev").onclick = ()=> shiftMonth(-1);
+document.getElementById("next").onclick = ()=> shiftMonth( 1);
+document.getElementById("reload").onclick = ()=> loadMonth();
+document.getElementById("saveAll").onclick = ()=> saveAll();
+
+let userTeams = [];
+const schemaCache = {};
+
+function pad(n){ return String(n).padStart(2,"0"); }
+function itDate(iso){ const [y,m,d]=iso.split("-"); return `${d}/${m}/${y}`; }
+function toDMY(iso){ const [y,m,d]=iso.split("-"); return `${d}-${m}-${y}`; }
+function parseDMY(dmy){ const [d,m,y]=String(dmy||"").split("-").map(Number); if(!d||!m||!y) return null; return new Date(y,m-1,d); }
+function daysBetweenUTC(a,b){
+  const t0 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  const t1 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.floor((t1-t0)/86400000);
+}
+function ymdKeyFromDate(d){ return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`; }
+function ymdKeyISO(iso){ return iso.replaceAll("-",""); }
+
+function teamForISO(iso){
+  if(!userTeams.length) return "A";
+  const target = ymdKeyISO(iso);
+  let last = null;
+  for(const r of userTeams){
+    const d = parseDMY(r.from_date);
+    if(!d) continue;
+    const key = ymdKeyFromDate(d);
+    if(key <= target) last = r.squadra;
+  }
+  return last || userTeams[0].squadra || "A";
+}
+
+async function fetchSchemaForISO(iso){
+  if(schemaCache[iso]) return schemaCache[iso];
+  const dmy = toDMY(iso);
+  const r = await fetch(`${API.activeSchema}?date=${encodeURIComponent(dmy)}`);
+  const j = await r.json();
+  schemaCache[iso] = j;
+  return j;
+}
+
+function plannedForISO(iso, schema, squadra){
+  try{
+    const seqStr = (schema && schema.squads && schema.squads[squadra]) ? schema.squads[squadra] : "";
+    const seq = String(seqStr).trim().split(/\s+/).filter(Boolean);
+    if(!seq.length) return "";
+    const w1 = parseDMY(schema.week1);
+    const target = new Date(Number(iso.slice(0,4)), Number(iso.slice(5,7))-1, Number(iso.slice(8,10)));
+    const idx = daysBetweenUTC(w1, target);
+    const pos = ((idx % seq.length) + seq.length) % seq.length;
+    return seq[pos] || "";
+  }catch(e){ return ""; }
+}
+
+function setStatus(msg, danger=false){
+  elStatus.textContent = msg || "";
+  elStatus.style.color = danger ? "var(--danger)" : "var(--muted)";
+}
+
+function getMonthBounds(yyyy, mm){
+  const from = `${yyyy}-${pad(mm)}-01`;
+  const last = new Date(Date.UTC(yyyy, mm, 0)).getUTCDate();
+  const to = `${yyyy}-${pad(mm)}-${pad(last)}`;
+  return {from,to,last};
+}
+
+function shiftMonth(delta){
+  const v = elMonth.value || new Date().toISOString().slice(0,7);
+  const [y,m] = v.split("-").map(Number);
+  const d = new Date(y, m-1, 1);
+  d.setMonth(d.getMonth()+delta);
+  elMonth.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+  loadMonth();
+}
+
+function makeSelectEff(){
+  const s = document.createElement("select");
+  s.innerHTML = `
+    <option value="">—</option>
+    <option value="M">M</option><option value="P">P</option><option value="N">N</option><option value="ON">ON</option>
+<option value="ASS">ASSENZA</option>`;
+  return s;
+}
+function makeSelectAbs(){
+  const s = document.createElement("select");
+  s.innerHTML = `
+    <option value="">—</option>
+    <option value="FERIE">FERIE</option><option value="PRF">PRF</option><option value="RO">RO</option>
+    <option value="PT">PT</option><option value="104">104</option><option value="RF">Riposo fisiologico</option><option value="RF">Riposo fisiologico</option>
+  `;
+  return s;
+}
+function makeSelectTrip(){
+  const s = document.createElement("select");
+  s.innerHTML = `<option value="">—</option><option value="96">96</option><option value="66">66</option>`;
+  return s;
+}
+function makeSelectForf(){
+  const s = document.createElement("select");
+  s.innerHTML = `<option value="">—</option><option value="FR66">FR66</option><option value="FR32">FR32</option>`;
+  return s;
+}
+
+function rowPayload(iso, ui){
+  return {
+    date: iso,
+    actual: ui.eff.value || "",
+    absence_type: ui.abs.value || "",
+    absence_flag: ui.absFlag.checked ? 1 : 0,
+    trip_type: ui.trip.value || "",
+    trip_return: ui.ret.checked ? 1 : 0,
+    lunch: ui.lunch.checked ? 1 : 0,
+    forfettario_id: ui.forf.value || "",
+    fuel: "", toll: "", other: "", note: ""
+  };
+}
+
+async function saveOne(iso, ui){
+  const payload = rowPayload(iso, ui);
+  const r = await fetch(API.day, {
+    method:"PUT",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+  const j = await r.json();
+  if(!j || j.ok !== true) throw new Error(j?.error || "save failed");
+}
+
+let uiMap = {};
+
+function applyRestRulesToRow(iso, plannedCode){
+  const ui = uiMap[iso];
+  if(!ui) return;
+  const c = String(plannedCode||"").trim().toUpperCase();
+  const isRest = (c==="" || c==="");
+  if(ui.abs){
+    ui.abs.disabled = isRest;
+    if(isRest) ui.abs.value = "";
+    const wrap = ui.abs.closest('.td') || ui.abs.parentElement;
+    if(wrap) wrap.style.opacity = isRest ? "0.55" : "";
+  }
+  if(ui.flag){
+    ui.flag.disabled = isRest;
+    if(isRest) ui.flag.checked = false;
+    const wrap = ui.flag.closest('.td') || ui.flag.parentElement;
+    if(wrap) wrap.style.opacity = isRest ? "0.55" : "";
+  }
+}
+
+
+async function deltaLimitCheck(iso, payload){
+  // payload: {date, trip_return, absence_type, absence_flag, trip_type, forfettario_id}
+  try{
+    const y = iso.slice(0,4), m = iso.slice(5,7);
+    const from = `${y}-${m}-01`;
+    const last = new Date(Date.UTC(Number(y), Number(m), 0)).getUTCDate();
+    const to = `${y}-${m}-${String(last).padStart(2,"0")}`;
+
+    const [oldRes, monthRes] = await Promise.all([
+      fetch(`${API_BASE}/api/day?date=${iso}`),
+      fetch(`${API_BASE}/api/days?from=${from}&to=${to}`)
+    ]);
+    const oldJson = await oldRes.json();
+    const monthJson = await monthRes.json();
+    const oldRow = oldJson.day || null;
+    const days = monthJson.days || [];
+
+    // counts excluding current day
+    let rientri=0,a104=0,trasfAss=0,forfAss=0;
+    for(const d of days){
+      if(d.date === iso) continue;
+      if(Number(d.trip_return||0)===1) rientri++;
+      if(String(d.absence_type||'').toUpperCase()==='104') a104++;
+      const flag = Number(d.absence_flag||0)===1;
+      const trasf = String(d.trip_type||'').trim();
+      if(flag && trasf) trasfAss++;
+      const forf = String(d.forfettario_id||'').trim();
+      if(flag && forf) forfAss++;
+    }
+
+    // delta old->new on this day
+    const before = {
+      ret: Number(oldRow?.trip_return||0)===1,
+      abs: String(oldRow?.absence_type||'').toUpperCase(),
+      flag: Number(oldRow?.absence_flag||0)===1,
+      trasf: String(oldRow?.trip_type||'').trim(),
+      forf: String(oldRow?.forfettario_id||'').trim()
+    };
+    const after = {
+      ret: Number(payload.trip_return||0)===1,
+      abs: String(payload.absence_type||'').toUpperCase(),
+      flag: Number(payload.absence_flag||0)===1,
+      trasf: String(payload.trip_type||'').trim(),
+      forf: String(payload.forfettario_id||'').trim()
+    };
+    const incR = (after.ret?1:0) - (before.ret?1:0);
+    const inc104 = (after.abs==='104'?1:0) - (before.abs==='104'?1:0);
+    const incTA = ((after.flag && after.trasf)?1:0) - ((before.flag && before.trasf)?1:0);
+    const incFA = ((after.flag && after.forf)?1:0) - ((before.flag && before.forf)?1:0);
+
+    // block ONLY if increasing beyond limit
+    if(incR>0 && (rientri + incR) > 3){ alert("Massimo 3 rientri al mese."); return false; }
+    if(inc104>0 && (a104 + inc104) > 3){ alert("Massimo 3 giorni di 104 al mese."); return false; }
+    if(incTA>0 && (trasfAss + incTA) > 3){ alert("Massimo 3 trasferte con assenza (flag) al mese."); return false; }
+    if(incFA>0 && (forfAss + incFA) > 3){ alert("Massimo 3 forfettari con assenza (flag) al mese."); return false; }
+
+    return true;
+  }catch(e){
+    return true; // non bloccare se errore rete
+  }
+}
+
+
+function norm(v){ return String(v||"").trim().toUpperCase(); }
+
+function countsFromUI(){
+  let rientri=0, a104=0, trasfAss=0, forfAss=0;
+  for(const iso of Object.keys(uiMap)){
+    const ui = uiMap[iso];
+    if(ui.ret?.checked) rientri++;
+    if(norm(ui.abs?.value)==="104") a104++;
+    const flag = ui.flag?.checked === true;
+    const trasf = norm(ui.trasf?.value);
+    if(flag && trasf && ["","—","-","NO"].indexOf(trasf)===-1) trasfAss++;
+    const forf = norm(ui.forf?.value);
+    if(flag && forf && ["","—","-"].indexOf(forf)===-1) forfAss++;
+  }
+  return {rientri,a104,trasfAss,forfAss};
+}
+
+function showLimitBannerIfNeeded(){
+  const c = countsFromUI();
+  const msgs = [];
+  if(c.rientri>3) msgs.push(`Rientri: ${c.rientri}/3`);
+  if(c.a104>3) msgs.push(`104: ${c.a104}/3`);
+  if(c.trasfAss>3) msgs.push(`Trasferta+Flag: ${c.trasfAss}/3`);
+  if(c.forfAss>3) msgs.push(`Forfettario+Flag: ${c.forfAss}/3`);
+  const box = document.getElementById("limitBanner");
+  if(!box) return;
+  if(msgs.length){
+    box.style.display="block";
+    box.textContent = "Attenzione: sei oltre limite. Puoi modificare per rientrare nei 3/mese. " + msgs.join(" • ");
+  }else{
+    box.style.display="none";
+    box.textContent = "";
+  }
+}
+
+// snapshot dell'ultimo stato salvato/caricato per capire se una modifica aumenta o diminuisce un contatore
+let savedSnap = {}; // iso -> {ret, abs, flag, trasf, forf}
+
+function snapFromUI(iso){
+  const ui = uiMap[iso];
+  return {
+    ret: !!ui.ret?.checked,
+    abs: norm(ui.abs?.value),
+    flag: !!ui.flag?.checked,
+    trasf: norm(ui.trasf?.value),
+    forf: norm(ui.forf?.value),
+  };
+}
+
+function countsFromSnap(baseSnap){
+  let rientri=0,a104=0,trasfAss=0,forfAss=0;
+  for(const iso of Object.keys(uiMap)){
+    const s = (baseSnap && baseSnap[iso]) ? baseSnap[iso] : snapFromUI(iso);
+    if(s.ret) rientri++;
+    if(s.abs==="104") a104++;
+    if(s.flag && s.trasf && ["","—","-","NO"].indexOf(s.trasf)===-1) trasfAss++;
+    if(s.flag && s.forf && ["","—","-"].indexOf(s.forf)===-1) forfAss++;
+  }
+  return {rientri,a104,trasfAss,forfAss};
+}
+
+function allowOrBlockChange(iso){
+  // blocca SOLO se la modifica AUMENTA un contatore già oltre 3 o porta oltre 3.
+  const before = countsFromSnap(savedSnap);
+  const after = countsFromSnap(null); // from current UI
+  const rules = [
+    ["rientri","Massimo 3 rientri al mese."],
+    ["a104","Massimo 3 giorni di 104 al mese."],
+    ["trasfAss","Massimo 3 trasferte con assenza (flag) al mese."],
+    ["forfAss","Massimo 3 forfettari con assenza (flag) al mese."]
+  ];
+  for(const [k,msg] of rules){
+    if(after[k] > 3 && after[k] > before[k]){ alert(msg); showLimitBannerIfNeeded(); return false; }
+  }
+  return true;
+}
+
+
+async function checkMonthlyLimitsViaApi(isoDate, next){
+  // next: { trip_return, absence_type, absence_flag, trip_type } for the current day being saved
+  try{
+    const y = isoDate.slice(0,4), m = isoDate.slice(5,7);
+    const from = `${y}-${m}-01`;
+    const last = new Date(Date.UTC(Number(y), Number(m), 0)).getUTCDate();
+    const to = `${y}-${m}-${String(last).padStart(2,"0")}`;
+
+    const r = await fetch(`${API_BASE}/api/days?from=${from}&to=${to}`);
+    const j = await r.json();
+    const days = (j.days||[]);
+
+    let rientri = 0, a104 = 0, trasfAss = 0, forfAbs = 0;
+
+    for(const d of days){
+      if(d.date === isoDate) continue; // sostituiamo con next
+      if(Number(d.trip_return||0) === 1) rientri++;
+      if(String(d.absence_type||"").toUpperCase() === "104") a104++;
+      const flag = Number(d.absence_flag||0) === 1;
+      const trasf = String(d.trip_type||"").trim();
+      if(flag && trasf) trasfAss++;
+      const f = String(d.forfettario_id||'').toUpperCase();
+      if(flag && (f==='FR66' || f==='FR32')) forfAbs++;
+    }
+
+    // include next values (the row we're saving)
+    if(Number(next.trip_return||0) === 1) rientri++;
+    if(String(next.absence_type||"").toUpperCase() === "104") a104++;
+    if(Number(next.absence_flag||0) === 1 && String(next.trip_type||'').trim()) trasfAss++;
+    const nf = String(next.forfettario_id||'').toUpperCase();
+    if(Number(next.absence_flag||0)===1 && (nf==='FR66' || nf==='FR32')) forfAbs++;
+
+    // mark UI over-limit (simple: just alert + return false; row highlighting handled separately)
+    if(rientri > 3){ alert("Massimo 3 rientri al mese."); return {ok:false, code:"rientri"}; }
+    if(a104 > 3){ alert("Massimo 3 giorni di 104 al mese."); return {ok:false, code:"104"}; }
+    if(trasfAss > 3){ alert("Massimo 3 trasferte con assenza (flag) al mese."); return {ok:false, code:"trasfAss"}; }
+
+    if(forfAbs > 3){ alert("Massimo 3 forfettari con assenza (flag) al mese."); return {ok:false, code:"forfAbs"}; }
+
+    return {ok:true};
+  }catch(e){
+    // se per qualche motivo fallisce il check, non blocchiamo (ma in genere funziona)
+    return {ok:true, warn:true};
+  }
+}
+
+function applyRowClasses(iso){
+  const ui = uiMap[iso];
+    applyRowClasses(iso);
+  if(!ui) return;
+  const flag = ui.flag?.checked === true || Number(ui.flag?.value||0)===1;
+  ui.tr?.classList?.toggle("flagAbsRow", !!flag);
+}
+
+
+function ymFromIso(iso){ return iso.slice(0,7); } // YYYY-MM
+function isAbs104(v){ return String(v||"").toUpperCase() === "104"; }
+
+function countRientriInMonth(){
+  let c=0;
+  for(const iso of Object.keys(uiMap)){
+    if(uiMap[iso].ret.checked) c++;
+    applyRowHighlight(iso);
+  }
+  return c;
+}
+function countAbs104InMonth(){
+  let c=0;
+  for(const iso of Object.keys(uiMap)){
+    const v = (uiMap[iso].abs.value||"").toUpperCase();
+    if(isAbs104(v)) c++;
+  }
+  return c;
+}
+function countTrasfConAssenzaInMonth(){
+  let c=0;
+  for(const iso of Object.keys(uiMap)){
+    const ui = uiMap[iso];
+    const flag = ui.flag?.checked === true;
+    const trasf = String(ui.trasf.value||"").trim();
+    // conta solo se flag assenza + trasferta selezionata (96/66/..)
+    if(flag && trasf && trasf !== "—" && trasf !== "-") c++;
+  }
+  return c;
+}
+
+function alertLimit(msg){
+  setStatus(msg, true);
+  alert(msg);
+}
+
+function enforceMonthlyLimits(changedIso, changedField){
+  // 1) rientri max 3
+  if(countRientriInMonth() > 3){
+    const ui = uiMap[changedIso];
+    ui.ret.checked = false;
+    updateForfUI?.(changedIso);
+    alertLimit("Massimo 3 rientri al mese.");
+    return false;
+  }
+  // 2) 104 max 3
+  if(countAbs104InMonth() > 3){
+    const ui = uiMap[changedIso];
+    if(changedField === "abs"){
+      ui.abs.value = "";
+    }
+    alertLimit("Massimo 3 giorni di 104 al mese.");
+    return false;
+  }
+  // 3) trasferta con assenza (flag) max 3
+  if(countTrasfConAssenzaInMonth() > 3){
+    const ui = uiMap[changedIso];
+    if(ui.flag) ui.flag.checked = false;
+    // ricalcola stile riga
+    applyRowHighlight(changedIso);
+    alertLimit("Massimo 3 trasferte con assenza (flag) al mese.");
+    return false;
+  }
+  return true;
+}
+
+function applyRowHighlight(iso){
+  const ui = uiMap[iso];
+  if(!ui) return;
+  const tr = ui.tr;
+  const flag = ui.flag?.checked === true;
+  if(flag) tr.classList.add("flagAbsRow");
+  else tr.classList.remove("flagAbsRow");
+}
+
+
+
+function isForf(v){ return v === "FR66" || v === "FR32"; }
+
+function countForfettariInMonth(){
+  let c = 0;
+  for(const iso of Object.keys(uiMap)){
+    const ui = uiMap[iso];
+    const retOn = ui.ret.checked;
+    const v = ui.forf.value || "";
+    if(retOn && isForf(v)) c++;
+  }
+  return c;
+}
+
+function updateForfUI(iso){
+  const ui = uiMap[iso];
+  if(!ui) return;
+  const retOn = ui.ret.checked;
+  if(!retOn){
+    ui.forf.value = "";
+    ui.forf.disabled = true;
+    ui.forf.parentElement.classList.add("mutedForf");
+  }else{
+    ui.forf.disabled = false;
+    ui.forf.parentElement.classList.remove("mutedForf");
+  }
+}
+
+function enforceForfLimit(iso){
+  const ui = uiMap[iso];
+  if(!ui) return true;
+  const total = countForfettariInMonth();
+  if(total > 3){
+    // revert selection
+    ui.forf.value = "";
+    setStatus("Massimo 3 forfettari (66/32) al mese.", true);
+    alert("Massimo 3 forfettari (66/32) al mese.");
+    return false;
+  }
+  return true;
+}
+
+
+async function saveAll(){
+      // beforeSaveAllLimits
+      if(countRientriInMonth()>3){ alertLimit('Massimo 3 rientri al mese.'); return; }
+      if(countAbs104InMonth()>3){ alertLimit('Massimo 3 giorni di 104 al mese.'); return; }
+      if(countTrasfConAssenzaInMonth()>3){ alertLimit('Massimo 3 trasferte con assenza (flag) al mese.'); return; }
+
+  setStatus("Salvataggio in corso...");
+  const keys = Object.keys(uiMap);
+  try{
+    for(const iso of keys) await saveOne(iso, uiMap[iso]);
+    setStatus("Salvato ✅");
+  }catch(e){
+    setStatus("Errore salvataggio: " + String(e.message||e), true);
+  }
+}
+
+function mkTd(label, role=null){
+  const td=document.createElement("td");
+  td.dataset.label = label;
+  if(role) td.dataset.role = role;
+  return td;
+}
+
+async function loadMonth(){
+  uiMap = {};
+  elRows.innerHTML = "";
+  setStatus("Carico...");
+
+  const val = elMonth.value || new Date().toISOString().slice(0,7);
+  const [yyyy, mm] = val.split("-").map(Number);
+  elTitle.textContent = new Date(yyyy, mm-1, 1).toLocaleDateString("it-IT",{month:"long",year:"numeric"});
+
+  const rt = await fetch(API.userTeams);
+  const jt = await rt.json();
+  userTeams = (jt && jt.teams) ? jt.teams : [];
+
+  const {from,to,last} = getMonthBounds(yyyy, mm);
+
+  const r = await fetch(`${API.daysRange}?from=${from}&to=${to}`);
+  const j = await r.json();
+  const map = {};
+  (j.days||[]).forEach(d => map[d.date] = d);
+
+  for(let day=1; day<=last; day++){
+    const iso = `${yyyy}-${pad(mm)}-${pad(day)}`;
+    const squadra = teamForISO(iso);
+    const schema = await fetchSchemaForISO(iso);
+    const pt = plannedForISO(iso, schema, squadra);
+
+    const entry = map[iso] || {};
+    const tr = document.createElement("tr");
+
+    const tdDate = mkTd("Data","date");
+    tdDate.innerHTML = `<span class="dateStrong">${itDate(iso)}</span> <span class="ptInline"></span>`;
+    const ptInline = tdDate.querySelector(".ptInline");
+
+    const tdPT = mkTd("P.T.");
+    const b = document.createElement("span");
+    b.className = "badgePT " + (pt || "");
+    b.textContent = pt || "—";
+    tdPT.appendChild(b);
+    const b2 = document.createElement('span'); b2.className = b.className; b2.textContent = b.textContent; ptInline.appendChild(b2);
+
+    const tdEff = mkTd("EFF.");
+    const selEff = makeSelectEff();
+    selEff.value = entry.actual || "";
+    tdEff.appendChild(selEff);
+
+    const tdAbs = mkTd("Assenza");
+    const selAbs = makeSelectAbs();
+    selAbs.value = entry.absence_type || "";
+    tdAbs.appendChild(selAbs);
+
+    const tdFlag = mkTd("Flag ass.");
+    const absFlag = document.createElement("input");
+    absFlag.type = "checkbox";
+    absFlag.className = "chk abs";
+    absFlag.checked = Number(entry.absence_flag||0) === 1;
+    tdFlag.appendChild(absFlag);
+
+    const tdTrip = mkTd("Trasf.");
+    const selTrip = makeSelectTrip();
+    selTrip.value = entry.trip_type || "";
+    tdTrip.appendChild(selTrip);
+
+    const tdRet = mkTd("Rientro");
+    const ret = document.createElement("input");
+    ret.type = "checkbox";
+    ret.className = "chk";
+    ret.checked = Number(entry.trip_return||0) === 1;
+    tdRet.appendChild(ret);
+
+    const tdLunch = mkTd("Pranzo");
+    const lunch = document.createElement("input");
+    lunch.type = "checkbox";
+    lunch.className = "chk";
+    lunch.checked = Number(entry.lunch||0) === 1;
+    tdLunch.appendChild(lunch);
+
+    const tdForf = mkTd("Rientro");
+    const selForf = makeSelectForf();
+    selForf.value = entry.forfettario_id || "";
+
+    // forfettario visibile/attivo SOLO se Rientro=SI
+    // (se Rientro NO: forfettario viene svuotato e disabilitato)
+
+    tdForf.appendChild(selForf);
+
+    function updateAbsRow(){ tr.classList.toggle("absRow", absFlag.checked); }
+    updateAbsRow();
+
+    let t=null;
+    function schedule(changed){
+      updateAbsRow();
+      
+      // aggiorna UI forfettario in base a rientro
+      updateForfUI(iso);
+      applyRowHighlight(iso);
+      if(!enforceMonthlyLimits(iso, (changed && changed.name) ? changed.name : '')) return;
+if(t) clearTimeout(t);
+      t=setTimeout(async ()=>{
+        // limite 3/mese per forfettari (FR66/FR32)
+        // Applichiamo solo quando il cambiamento può incidere sul conteggio
+        if(!enforceForfLimit(iso)) return;
+        try{ await saveOne(iso, uiMap[iso]); setStatus("Salvato ✅"); }
+        catch(e){ setStatus("Errore: "+String(e.message||e), true); }
+      }, 450);
+    }
+    [selEff, selAbs, absFlag, selTrip, ret, lunch, selForf].forEach(el=> el.addEventListener("change", (e)=>schedule(e.target)));
+
+    tr.append(tdDate, tdPT, tdEff, tdAbs, tdFlag, tdTrip, tdRet, tdLunch, tdForf);
+    elRows.appendChild(tr);
+
+    uiMap[iso] = {eff:selEff, abs:selAbs, absFlag, trip:selTrip, ret, lunch, forf: selForf, tr: tr, flag: absFlag, trasf: selTrip};
+    savedSnap[iso] = snapFromUI(iso);
+
+
+    updateForfUI(iso);
+  }
+
+  setStatus("Pronto.");
+}
+
+(function init(){
+  const now = new Date();
+  elMonth.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+  loadMonth();
+})();
+</script>
+</body>
+</html>

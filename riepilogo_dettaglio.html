@@ -1,0 +1,140 @@
+<!doctype html><html lang="it"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dettaglio economico</title>
+<script>window.API_BASE="https://turni-api-v2.mecfed.workers.dev";</script>
+<style>
+:root{--bg:#0b0f14;--panel:#101a26;--line:#223042;--txt:#e7edf7;--muted:#a8b3c7}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui;background:var(--bg);color:var(--txt)}
+header{padding:16px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{margin:0;font-size:20px}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:14px}
+label{font-size:12px;color:var(--muted);font-weight:800}
+input{padding:8px;border-radius:10px;border:1px solid var(--line);background:#0f1620;color:var(--txt)}
+button{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#162233;color:var(--txt);cursor:pointer;font-weight:900}
+button.primary{border-color:#2f5ea8}
+a{color:var(--muted);text-decoration:none;font-weight:900} a:hover{color:var(--txt)}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border-bottom:1px solid rgba(255,255,255,.06);padding:10px 8px;text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:900} td{font-size:13px}
+.right{text-align:right} .small{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+
+tfoot th{font-weight:900}
+</style></head><body>
+<header><div class="wrap"><div class="row" style="justify-content:space-between">
+<div><h1>Dettaglio economico</h1><div class="small">Giornaliero + calcolo singolo periodo + export CSV.</div></div>
+<div class="row"><a href="riepilogo.html">← Riepilogo</a><a href="/">Calendario</a></div>
+</div></div></header>
+
+<div class="wrap">
+<div class="card">
+  <div class="row">
+    <div><label>Da</label><br/><input id="from" type="date"/></div>
+    <div><label>A</label><br/><input id="to" type="date"/></div>
+    <div style="flex:1"></div>
+    <button class="primary" id="btnLoad">Calcola</button>
+    <button id="btnCsv">Export CSV</button>
+  </div>
+  <div class="small" id="settingsInfo" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+  <div style="overflow:auto">
+  <table>
+    <thead><tr>
+      <th>Data</th><th>Turno (eff.)</th><th>Trasferta</th><th>Pranzo</th><th>Rientro</th>
+      <th class="right">Benzina</th><th class="right">Autostrada</th><th class="right">Altre</th><th class="right">Ore</th><th class="right">Totale €</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+<tfoot id="tfoot"></tfoot>
+  </table>
+  </div>
+</div>
+  <a href="ai_trasferta.html">AI</a>
+</div>
+
+<script>
+(()=>{
+const API=(window.API_BASE||"").replace(/\/$/,"");
+const elFrom=document.getElementById("from"), elTo=document.getElementById("to");
+const btnLoad=document.getElementById("btnLoad"), btnCsv=document.getElementById("btnCsv");
+const tbody=document.getElementById("tbody"), settingsInfo=document.getElementById("settingsInfo");
+function num(v){const n=Number(v); return Number.isFinite(n)?n:0;} function money(x){return (Math.round(x*100)/100).toFixed(2);}
+function getAmounts(s){
+  // compat: API può restituire settings "piatti" (t96, t66, ...) oppure annidati in settings.rates
+  s = s || {};
+  const r = (s && typeof s === "object" && s.rates && typeof s.rates === "object") ? s.rates : s;
+  const t96 = num(r.t96 ?? r.f96 ?? r.trasferta96 ?? 96);
+  const t66 = num(r.t66 ?? r.f66 ?? r.trasferta66 ?? 66);
+  const t72 = num(r.t72 ?? r.t75_72 ?? r.trasferta72 ?? 72);
+  const t49 = num(r.t49 ?? r.t75_49_5 ?? r.trasferta49_5 ?? 49.5);
+  const fr66 = num(r.fr66 ?? r.rientro66 ?? 66);
+  const fr32 = num(r.fr32 ?? r.rientro32 ?? 32);
+  const lunch = num(r.lunch ?? r.pranzo ?? 0);
+  return { t96, t66, t72, t49, fr66, fr32, lunch };
+}
+function calcDay(d,a){const trip=String(d.trip_type||"").trim(); const lunch=num(d.lunch)?1:0; const forf=String(d.forfettario_id||"").toUpperCase(); const fuel=num(d.fuel), toll=num(d.toll), other=num(d.other); const t50=num(d.travel50_h), t100=num(d.travel100_h), g150=num(d.drive150_h);
+let euroTrip=0; if(trip==="96") euroTrip=a.t96; if(trip==="66") euroTrip=a.t66;
+let euroLunch=lunch?a.lunch:0; let euroRet=0; if(forf==="FR66") euroRet=a.fr66; if(forf==="FR32") euroRet=a.fr32;
+const euroR=toll+other; const total=euroTrip+euroLunch+euroRet+euroR;
+return {trip,lunch,forf,fuel,toll,other,t50,t100,g150,euroTrip,euroLunch,euroRet,euroR,total};
+}
+async function getJson(path){const r=await fetch(API+path); const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||("HTTP "+r.status)); return j;}
+function setDefaultsFromQS(){const qs=new URLSearchParams(location.search); const f=qs.get("from"), t=qs.get("to"); if(f) elFrom.value=f; if(t) elTo.value=t;
+if(!elFrom.value||!elTo.value){const d=new Date(); const y=d.getFullYear(), m=d.getMonth()+1, last=new Date(y,m,0).getDate(); elFrom.value=`${y}-${String(m).padStart(2,"0")}-01`; elTo.value=`${y}-${String(m).padStart(2,"0")}-${String(last).padStart(2,"0")}`;}}
+function toCsv(rows){const head=["date","actual","trip_type","lunch","forfettario_id","fuel","toll","other","travel50_h","travel100_h","drive150_h","total_eur"]; const lines=[head.join(",")];
+rows.forEach(r=>{lines.push(head.map(k=>`"${String(r[k]??"").replace(/"/g,'""')}"`).join(","));}); return lines.join("\n");}
+let lastCsv=[];
+let sumTrip=0,sumLunch=0,sumRet=0,sumFuel=0,sumToll=0,sumOther=0,sumTot=0;
+async function load(){
+const from=elFrom.value, to=elTo.value; if(!from||!to){alert("Inserisci Da/A"); return;}
+tbody.innerHTML="<tr><td colspan='10' class='small'>Caricamento…</td></tr>"; lastCsv=[];
+sumTrip=0;sumLunch=0;sumRet=0;sumFuel=0;sumToll=0;sumOther=0;sumTot=0;
+let settingsPack={settings:null,active_from_date:null}; try{settingsPack=await getJson("/api/settings/trasferta?date="+encodeURIComponent(to));}catch{}
+const amounts=getAmounts(settingsPack.settings);
+settingsInfo.textContent=settingsPack.active_from_date?("Impostazioni trasferta attive dal: "+settingsPack.active_from_date):"Impostazioni trasferta non trovate: uso default.";
+const pack=await getJson("/api/days?from="+encodeURIComponent(from)+"&to="+encodeURIComponent(to)); const days=pack.days||[];
+tbody.innerHTML=""; if(!days.length){tbody.innerHTML="<tr><td colspan='10' class='small'>Nessun dato nel periodo.</td></tr>"; const tfoot=document.getElementById('tfoot'); if(tfoot) tfoot.innerHTML=''; return;}
+days.forEach(d=>{
+const c=calcDay(d,amounts);
+sumTrip+=c.euroTrip||0; sumLunch+=c.euroLunch||0; sumRet+=c.euroRet||0; sumFuel+=c.fuel||0; sumToll+=c.toll||0; sumOther+=c.other||0; sumTot+=c.total||0;
+const rimb=[]; if(c.fuel) rimb.push("Benz "+money(c.fuel)); if(c.toll) rimb.push("Aut "+money(c.toll)); if(c.other) rimb.push("Alt "+money(c.other));
+const ore=[]; if(c.t50) ore.push("V50 "+money(c.t50)); if(c.t100) ore.push("V100 "+money(c.t100)); if(c.g150) ore.push("G150 "+money(c.g150));
+const tr=document.createElement("tr");
+tr.innerHTML=`<td>${d.date}</td><td>${d.actual||""}</td>
+<td>${c.trip||""} ${c.euroTrip?`<span class="pill">€${money(c.euroTrip)}</span>`:""}</td>
+<td>${c.lunch?`<span class="pill">SI</span> €${money(c.euroLunch)}`:""}</td>
+<td>${c.forf||""} ${c.euroRet?`<span class="pill">€${money(c.euroRet)}</span>`:""}</td>
+<td class="right">${c.fuel?money(c.fuel):""}</td><td class="right">${c.toll?money(c.toll):""}</td><td class="right">${c.other?money(c.other):""}</td>
+<td class="right">${ore.length?ore.join("<br>"):""}</td>
+<td class="right"><b>${money(c.total)}</b></td>`;
+tbody.appendChild(tr);
+lastCsv.push({date:d.date, actual:d.actual||"", trip_type:c.trip, lunch:c.lunch?1:0, forfettario_id:c.forf, fuel:money(c.fuel), toll:money(c.toll), other:money(c.other),
+travel50_h:money(c.t50), travel100_h:money(c.t100), drive150_h:money(c.g150), total_eur:money(c.total)});
+});
+// Footer Totali
+const tfoot=document.getElementById("tfoot");
+if(tfoot){
+  tfoot.innerHTML=`
+    <tr>
+      <th colspan="2" class="right">Totali</th>
+      <th class="right">€ ${money(sumTrip)}</th>
+      <th class="right">€ ${money(sumLunch)}</th>
+      <th class="right">€ ${money(sumRet)}</th>
+      <th class="right">€ ${money(sumFuel)}</th>
+      <th class="right">€ ${money(sumToll)}</th>
+      <th class="right">€ ${money(sumOther)}</th>
+      <th class="right"></th>
+      <th class="right">€ ${money(sumTot)}</th>
+    </tr>
+  `;
+}
+}
+btnLoad.addEventListener("click",load);
+btnCsv.addEventListener("click",()=>{if(!lastCsv.length){alert("Nessun dato da esportare"); return;}
+const csv=toCsv(lastCsv); const blob=new Blob([csv],{type:"text/csv"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="dettaglio_economico.csv"; a.click();});
+setDefaultsFromQS(); load();
+})();
+</script></body></html>

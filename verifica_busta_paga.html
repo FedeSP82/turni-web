@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Verifica busta paga</title>
+<script>window.API_BASE = window.API_BASE || "https://turni-api-v2.mecfed.workers.dev";</script>
+<style>
+:root{--bg:#0f1115;--text:#eaeaea;--card:#0f131d;--border:#1f2638}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui;padding-bottom:78px}
+header{position:sticky;top:0;z-index:20;padding:10px 12px;background:rgba(15,17,21,.9);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
+h1{margin:0;font-size:16px;font-weight:950;text-align:center}
+.wrap{max-width:980px;margin:0 auto;padding:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+label{font-size:12px;opacity:.75;font-weight:900}
+input{background:#0b1020;color:#fff;border:1px solid #2b3550;border-radius:12px;padding:10px}
+button{background:#131826;color:#fff;border:1px solid #2b3550;border-radius:12px;padding:10px 12px;font-weight:950}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left}
+th{opacity:.7}
+.ok{color:#3ddc97;font-weight:900}
+.warn{color:#ffd166;font-weight:900}
+.bad{color:#ff6b6b;font-weight:900}
+.bottomNav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(9,12,20,.98);border-top:1px solid rgba(255,255,255,.1);backdrop-filter:blur(12px);z-index:9999}
+.bottomNav a{flex:1;background:#131826;color:#fff;border:1px solid #2b3550;border-radius:14px;padding:12px 10px;text-align:center;text-decoration:none;font-weight:950}
+</style>
+</head>
+<body>
+<header><h1>🧾 Verifica busta paga</h1></header>
+<div class="wrap">
+  <div class="card">
+    <div class="row">
+      <div><label>Mese cedolino</label><br><input type="month" id="cedMonth"></div>
+      <button id="btn">Verifica</button>
+    </div>
+    <p style="opacity:.8">Confronto automatico su dati <b>M‑1</b>. Tabellari esclusi. I <b>rientri (FR66/FR32)</b> sono inclusi nei forfait totali.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Dati busta paga</h3>
+    <div class="row">
+      <div><label>Forfait totali €</label><br><input id="bp_forfait" placeholder="0,00"></div>
+      <div><label>Forfait ASS €</label><br><input id="bp_ass" placeholder="0,00"></div>
+      <div><label>Spese totali €</label><br><input id="bp_spese" placeholder="0,00"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Risultato confronto</h3>
+    <table>
+      <tr><th>Voce</th><th>App</th><th>Busta</th><th>Esito</th></tr>
+      <tr><td>Forfait totali (incl. rientri)</td><td id="a_forfait"></td><td id="b_forfait"></td><td id="e_forfait"></td></tr>
+      <tr><td>Forfait ASS</td><td id="a_ass"></td><td id="b_ass"></td><td id="e_ass"></td></tr>
+      <tr><td>Spese</td><td id="a_spese"></td><td id="b_spese"></td><td id="e_spese"></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="bottomNav">
+  <a href="schemi.html">Schemi</a>
+  <a href="index.html">Calendario</a>
+  <a href="mese.html">Mese</a>
+  <a href="riepilogo.html">Riepilogo</a>
+  <a href="dati.html">Dati</a>
+</div>
+
+<script>
+const API = window.API_BASE;
+function prevMonth(m){let[y,mo]=m.split('-').map(Number);mo--;if(mo===0){mo=12;y--;}return `${y}-${String(mo).padStart(2,'0')}`;}
+function range(ym){const[y,m]=ym.split('-').map(Number);const last=new Date(y,m,0).getDate();return{from:`${y}-${String(m).padStart(2,'0')}-01`,to:`${y}-${String(m).padStart(2,'0')}-${String(last).padStart(2,'0')}`};}
+async function run(){
+  const m=document.getElementById('cedMonth').value; if(!m) return alert('Seleziona mese');
+  const am=prevMonth(m); const {from,to}=range(am);
+  const res=await fetch(`${API}/api/days?from=${from}&to=${to}`); const j=await res.json();
+  let forfait=0, ass=0, spese=0;
+  (j.days||[]).forEach(d=>{
+    if(d.trip_type){ forfait += Number(d.trip_type)||0; }
+    if(d.forfettario_id==='FR66' || d.forfettario_id==='FR32'){ forfait += 66; }
+    if(d.absence_flag && String(d.forfettario_id||'').includes('ASS')) ass++;
+    spese += (Number(d.fuel)||0)+(Number(d.toll)||0)+(Number(d.other)||0);
+  });
+  a_forfait.textContent = forfait.toFixed(2);
+  a_ass.textContent = ass;
+  a_spese.textContent = spese.toFixed(2);
+  const bf=parseFloat(bp_forfait.value||0), ba=parseFloat(bp_ass.value||0), bs=parseFloat(bp_spese.value||0);
+  b_forfait.textContent = bf.toFixed(2);
+  b_ass.textContent = ba.toFixed(2);
+  b_spese.textContent = bs.toFixed(2);
+  e_forfait.textContent = (Math.abs(forfait-bf)<1?'OK':'⚠️'); e_forfait.className=(Math.abs(forfait-bf)<1?'ok':'warn');
+  e_spese.textContent = (Math.abs(spese-bs)<1?'OK':'⚠️'); e_spese.className=(Math.abs(spese-bs)<1?'ok':'warn');
+  e_ass.textContent = (ass<=3?'OK':'❌'); e_ass.className=(ass<=3?'ok':'bad');
+}
+document.getElementById('btn').onclick=run; const d=new Date(); cedMonth.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+</script>
+</body>
+</html>

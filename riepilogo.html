@@ -1,0 +1,295 @@
+<!doctype html><html lang="it"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Riepilogo economico</title>
+<script>window.API_BASE="https://turni-api-v2.mecfed.workers.dev";</script>
+<style>
+:root{--bg:#0b0f14;--panel:#101a26;--line:#223042;--txt:#e7edf7;--muted:#a8b3c7}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui;background:var(--bg);color:var(--txt)}
+header{padding:16px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{margin:0;font-size:20px}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:14px}
+label{font-size:12px;color:var(--muted);font-weight:800}
+input,select{padding:8px;border-radius:10px;border:1px solid var(--line);background:#0f1620;color:var(--txt)}
+button{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#162233;color:var(--txt);cursor:pointer;font-weight:900}
+button.primary{border-color:#2f5ea8}
+a{color:var(--muted);text-decoration:none;font-weight:900} a:hover{color:var(--txt)}
+.totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.totals{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.totals{grid-template-columns:1fr}}
+.kpi{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0f1620}
+.kpi .v{font-size:20px;font-weight:900;margin-top:4px}
+.small{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+</style></head><body>
+<header><div class="wrap"><div class="row" style="justify-content:space-between">
+<div><h1>Riepilogo economico</h1><div class="small">Vista sintetica. Il dettaglio è in una pagina separata.</div></div>
+<div class="row"><a href="/">Calendario</a><a href="schemi.html">Schemi</a><a href="riepilogo_dettaglio.html">Dettaglio →</a></div>
+</div></div></header>
+
+<div class="wrap">
+<div class="card">
+  <div class="row">
+    <div><label>Modalità</label><br/><select id="mode"><option value="month">Mensile</option><option value="range">Periodo</option></select></div>
+    <div id="monthBox"><label>Mese</label><br/><input id="month" type="month"/></div>
+    <div id="rangeBox" style="display:none">
+      <div class="row">
+        <div><label>Da</label><br/><input id="from" type="date"/></div>
+        <div><label>A</label><br/><input id="to" type="date"/></div>
+      </div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="primary" id="btnLoad">Calcola</button>
+    <a class="pill" id="goDetail" href="riepilogo_dettaglio.html">Apri dettaglio</a>
+  </div>
+  <div class="small" id="settingsInfo" style="margin-top:10px"></div>
+</div>
+
+<div class="card"><div class="totals" id="kpis"></div></div>
+  <a href="ai_trasferta.html">AI</a>
+</div>
+
+<script>
+(()=>{
+const API=(localStorage.getItem("API_BASE") || window.API_BASE || "").replace(/\/$/,"");
+
+// --- Helpers turno previsto (solo per calcoli riepilogo) ---
+let _teamsHist = null;               // [{from_date:"DD-MM-YYYY", squadra:"A"}...]
+const _schemaCache = new Map();      // key: "DD-MM-YYYY" -> schema object
+
+function pad2(n){ return String(n).padStart(2,"0"); }
+function dmyFromISO(iso){ const y=iso.slice(0,4), m=iso.slice(5,7), d=iso.slice(8,10); return `${d}-${m}-${y}`; }
+function isoFromDMY(dmy){ if(!/^\d{2}-\d{2}-\d{4}$/.test(dmy)) return ""; const [d,m,y]=dmy.split("-"); return `${y}-${m}-${d}`; }
+function parseDMY(dmy){
+  if(!/^\d{2}-\d{2}-\d{4}$/.test(String(dmy||""))) return null;
+  const [d,m,y]=String(dmy).split("-").map(Number);
+  return new Date(Date.UTC(y, m-1, d));
+}
+function isoFromDateObj(dt){
+  const y=dt.getUTCFullYear();
+  const m=pad2(dt.getUTCMonth()+1);
+  const d=pad2(dt.getUTCDate());
+  return `${y}-${m}-${d}`;
+}
+function daysBetween(aUTC, bUTC){
+  const ms = bUTC.getTime() - aUTC.getTime();
+  return Math.floor(ms / 86400000);
+}
+function parseSeqTokens(seq){
+  // accetta "M P N ..." o "MPN..." o con separatori vari
+  const s = String(seq||"").trim();
+  if(!s) return [];
+  if(/[ ,;\n\r\t]/.test(s)) return s.split(/[ ,;\n\r\t]+/).map(x=>x.trim()).filter(Boolean);
+  // fallback: split per caratteri (gestisce ON, RC, RN: cerchiamo token noti)
+  const out=[];
+  let i=0;
+  const up=s.toUpperCase();
+  while(i<up.length){
+    const two=up.slice(i,i+2);
+    if(["ON","RC","RN","PR","RO","PT"].includes(two)){ out.push(two); i+=2; continue; }
+    out.push(up[i]); i+=1;
+  }
+  return out;
+}
+function teamForISO(iso){
+  if(!_teamsHist || _teamsHist.length===0) return "";
+  let last="";
+  for(const r of _teamsHist){
+    const isoFrom = isoFromDMY(r.from_date);
+    if(isoFrom && isoFrom <= iso) last = String(r.squadra||"").trim().toUpperCase();
+  }
+  return last;
+}
+async function ensureTeams(){
+  if(_teamsHist) return _teamsHist;
+  const j = await fetch(API + "/api/user/teams").then(r=>r.json()).catch(()=>({}));
+  _teamsHist = j.history || j.teams || [];
+  return _teamsHist;
+}
+async function getSchemaForDMY(dmy){
+  if(_schemaCache.has(dmy)) return _schemaCache.get(dmy);
+  const j = await fetch(API + "/api/schema/active?date="+encodeURIComponent(dmy)).then(r=>r.json()).catch(()=>({}));
+  const schema = j.schema || j; // compat
+  _schemaCache.set(dmy, schema || null);
+  return schema || null;
+}
+function turnoPrevistoFor(schema, iso){
+  // iso: YYYY-MM-DD, schema.week1 è DD-MM-YYYY, schema.squads[team] = seq
+  if(!schema) return "";
+  const start = parseDMY(schema.week1);
+  if(!start) return "";
+  const d = new Date(Date.UTC(Number(iso.slice(0,4)), Number(iso.slice(5,7))-1, Number(iso.slice(8,10))));
+  const diff = daysBetween(start, d);
+  if(diff < 0) return "";
+  const team = teamForISO(iso);
+  if(!team) return "";
+  const seqRaw = (schema.squads && schema.squads[team]) ? schema.squads[team] : "";
+  const tokens = parseSeqTokens(seqRaw);
+  if(tokens.length===0) return "";
+  return String(tokens[diff % tokens.length] || "").toUpperCase().trim();
+}
+
+
+const elMode=document.getElementById("mode"), elMonth=document.getElementById("month");
+const elFrom=document.getElementById("from"), elTo=document.getElementById("to");
+const monthBox=document.getElementById("monthBox"), rangeBox=document.getElementById("rangeBox");
+const btnLoad=document.getElementById("btnLoad"), kpis=document.getElementById("kpis"), settingsInfo=document.getElementById("settingsInfo");
+function setStatus(msg,isErr){ if(!settingsInfo) return; settingsInfo.textContent=msg||""; settingsInfo.style.color=isErr?"#ff6b6b":"var(--muted)"; }
+
+const goDetail=document.getElementById("goDetail");
+const now=new Date(); elMonth.value=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+
+elMode.addEventListener("change",()=>{const isRange=elMode.value==="range"; monthBox.style.display=isRange?"none":"block"; rangeBox.style.display=isRange?"block":"none"; syncDetailLink();});
+function isoRangeFromMonth(yyyyMM){const [y,m]=yyyyMM.split("-").map(Number); const from=`${y}-${String(m).padStart(2,"0")}-01`; const last=new Date(y,m,0).getDate(); const to=`${y}-${String(m).padStart(2,"0")}-${String(last).padStart(2,"0")}`; return {from,to};}
+function num(v){const n=Number(v); return Number.isFinite(n)?n:0;} function money(x){return (Math.round(x*100)/100).toFixed(2);}
+function getAmounts(s){
+  // compat: API può restituire settings "piatti" (t96, t66, ...) oppure annidati in settings.rates
+  s = s || {};
+  const r = (s && typeof s === "object" && s.rates && typeof s.rates === "object") ? s.rates : s;
+  const t96 = num(r.t96 ?? r.f96 ?? r.trasferta96 ?? 96);
+  const t66 = num(r.t66 ?? r.f66 ?? r.trasferta66 ?? 66);
+  const t72 = num(r.t72 ?? r.t75_72 ?? r.trasferta72 ?? 72);
+  const t49 = num(r.t49 ?? r.t75_49_5 ?? r.trasferta49_5 ?? 49.5);
+  const fr66 = num(r.fr66 ?? r.rientro66 ?? 66);
+  const fr32 = num(r.fr32 ?? r.rientro32 ?? 32);
+  const lunch = num(r.lunch ?? r.pranzo ?? 0);
+  return { t96, t66, t72, t49, fr66, fr32, lunch };
+}
+function calcDay(d,a){const trip=String(d.trip_type||"").trim(); const lunch=num(d.lunch)?1:0; const forf=String(d.forfettario_id||"").toUpperCase(); const fuel=num(d.fuel), toll=num(d.toll), other=num(d.other); const t50=num(d.travel50_h), t100=num(d.travel100_h), g150=num(d.drive150_h);
+let euroTrip=0; if(trip==="96") euroTrip=a.t96; if(trip==="66") euroTrip=a.t66;
+let euroLunch=lunch?a.lunch:0; let euroRet=0; if(forf==="FR66") euroRet=a.fr66; if(forf==="FR32") euroRet=a.fr32;
+const euroR=toll+other; const total=euroTrip+euroLunch+euroRet+euroR;
+return {euroTrip,euroLunch,euroRet,euroR,total,forf,t50,t100,g150,fuel,toll,other};
+}
+async function getJson(path){const r=await fetch(API+path); const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||("HTTP "+r.status)); return j;}
+function syncDetailLink(){let from,to; if(elMode.value==="range"){from=elFrom.value||""; to=elTo.value||"";} else {const rng=isoRangeFromMonth(elMonth.value); from=rng.from; to=rng.to;}
+const qs=new URLSearchParams(); if(from) qs.set("from",from); if(to) qs.set("to",to); goDetail.href="riepilogo_dettaglio.html?"+qs.toString();}
+elMonth.addEventListener("change",syncDetailLink); elFrom?.addEventListener("change",syncDetailLink); elTo?.addEventListener("change",syncDetailLink);
+
+async function load(){
+let from,to; if(elMode.value==="range"){from=elFrom.value; to=elTo.value; if(!from||!to){alert("Inserisci Da/A"); return;}} else {const rng=isoRangeFromMonth(elMonth.value); from=rng.from; to=rng.to;}
+let settingsPack={settings:null,active_from_date:null}; try{settingsPack=await getJson("/api/settings/trasferta?date="+encodeURIComponent(to));}catch{}
+let payrollPack={settings:null,active_from_date:null}; try{payrollPack=await getJson("/api/settings/payroll?date="+encodeURIComponent(to));}catch{}
+const amounts=getAmounts(settingsPack.settings);
+settingsInfo.textContent=settingsPack.active_from_date?("Impostazioni trasferta attive dal: "+settingsPack.active_from_date):"Impostazioni trasferta non trovate: uso default.";
+let days=[]; try{
+  const pack=await getJson("/api/days?from="+encodeURIComponent(from)+"&to="+encodeURIComponent(to));
+  days=pack.days||[];
+}catch(e){
+  setStatus("Errore nel calcolo: API non raggiungibile o risposta non valida. Controlla che il Worker sia online e che API_BASE sia corretto.", true);
+  console.error(e);
+  return;
+}
+
+let sumTrip=0,sumLunch=0,sumRet=0,sumR=0,sumTot=0,sumFuel=0,sumToll=0,sumOther=0,cntFR=0,cntVociTrasferta=0,cntVociFuel=0;
+// Somma voci dal calendario
+for (const d of (days||[])) {
+  const c = calcDay(d, amounts);
+  sumTrip += c.euroTrip;
+  sumLunch += c.euroLunch;
+  sumRet += c.euroRet;
+  sumR += c.euroR;
+  sumTot += c.total;
+  sumFuel += c.fuel;
+  sumToll += c.toll;
+  sumOther += c.other;
+  if (c.forf === 'FR66' || c.forf === 'FR32') cntFR += 1;
+  // conteggio voci TRASFERTA: conta le voci effettive (non i giorni)
+  if (c.euroTrip) cntVociTrasferta += 1;
+  if (c.euroLunch) cntVociTrasferta += 1;
+  if (c.euroRet) cntVociTrasferta += 1;
+  if (c.toll) cntVociTrasferta += 1;
+  if (c.other) cntVociTrasferta += 1;
+  // conteggio voci BENZINA (separato)
+  if (c.fuel) cntVociFuel += 1;
+}
+
+
+// --- Payroll base (paga oraria) ---
+function payrollNumber(x){
+  if(x===null||typeof x==='undefined') return 0;
+  const s=String(x).replace(/\./g,'').replace(',', '.').trim();
+  const n=Number(s);
+  return Number.isFinite(n)?n:0;
+}
+const ps = (payrollPack && payrollPack.settings) ? payrollPack.settings : null;
+const divRetr = payrollNumber(ps?.divisore_retribuzione ?? ps?.div_retr ?? 168.6) || 168.6;
+// "Retribuzione" = somma delle voci principali della prima riga
+const retr = payrollNumber(ps?.minimo_contr_integrato)
+  + payrollNumber(ps?.supp_minimo_ap)
+  + payrollNumber(ps?.dv6_art35)
+  + payrollNumber(ps?.importo_in_cifra)
+  + payrollNumber(ps?.aum_biennali_ap)
+  + payrollNumber(ps?.aum_biennali_anz_conv)
+  + payrollNumber(ps?.livelli_salariali_ap)
+  + payrollNumber(ps?.assegni_merito_quadri_assorb)
+  + payrollNumber(ps?.assegni_ap_non_assorb)
+  + payrollNumber(ps?.livello_salariale_residuo)
+  + payrollNumber(ps?.apa)
+  + payrollNumber(ps?.livello_funzione)
+  + payrollNumber(ps?.emolumento_ind_quadri)
+  + payrollNumber(ps?.altro1)
+  + payrollNumber(ps?.altro2);
+const pagaOraria = (retr>0 && divRetr>0) ? (retr/divRetr) : 0;
+
+// --- Cambio turno (10 min) ---
+// Indennizzo fisso 10 minuti SOLO se giornata "pulita" di turno (M/P/N), senza straordinario/override.
+let cambioOre = 0;
+function isFerie(d){
+  const af = Number(d.absence_flag||0) ? 1 : 0;
+  const at = String(d.absence_type||'').toUpperCase().trim();
+  return af===1 && at==='FERIE';
+}
+function isCleanDayForCambio(d){
+  if(isFerie(d)) return false;
+  if(d.actual_start || d.actual_end) return false;           // override orari => niente cambio turno
+  if(Number(d.has_intervals||0)===1) return false;           // intervalli manuali => niente cambio turno
+  return true;
+}
+async function computeCambioTurno(days){
+  try{
+    await ensureTeams();
+    for(const d of (days||[])){
+      const iso = String(d.date||"").trim();
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) continue;
+      if(!isCleanDayForCambio(d)) continue;
+
+      const te = String(d.actual||"").toUpperCase().trim();
+      let shift = te;
+
+      // Se TE vuoto, usa il previsto (schema attivo + squadra per data)
+      if(!shift){
+        const dmy = dmyFromISO(iso);
+        const schema = await getSchemaForDMY(dmy);
+        shift = turnoPrevistoFor(schema, iso);
+      }
+
+      if(!['M','P','N'].includes(shift)) continue;
+      cambioOre += (10/60);
+    }
+  }catch(e){
+    cambioOre += 0;
+  }
+}
+
+// Nota: in questa pagina mostriamo SOLO TRASFERTA/RIMBORSI.
+// Cambio turno / ore guida / straordinari stanno nel riepilogo paga (separato).
+const totaleTrasfertaNoFuel = sumTot;            // include trasferta + rientri + pranzo + autostrada + altre
+const totaleRimborsiConFuel = sumTot + sumFuel;  // utile come riferimento
+
+kpis.innerHTML=`
+<div class="kpi"><div class="small">Totale trasferta (senza benzina)</div><div class="v">€ ${money(totaleTrasfertaNoFuel)}</div><div class="small">Rimborsi + forfettari + pranzo</div></div>
+<div class="kpi"><div class="small">Numero voci spese (senza benzina)</div><div class="v">${cntVociTrasferta}</div><div class="small">Conta le voci effettive: forfait, rientri, pranzi, autostrade e altre spese (benzina esclusa)</div></div>
+<div class="kpi"><div class="small">Trasferta</div><div class="v">€ ${money(sumTrip)}</div><div class="small">96=${money(amounts.t96)} • 66=${money(amounts.t66)}</div></div>
+<div class="kpi"><div class="small">Rientri (FR66/FR32)</div><div class="v">€ ${money(sumRet)}</div><div class="small">Conteggio: ${cntFR} ${elMode.value==="month"?"(max 3/mese)":""}</div></div>
+<div class="kpi"><div class="small">Pranzo</div><div class="v">€ ${money(sumLunch)}</div><div class="small">Valore: ${money(amounts.lunch)}</div></div>
+<div class="kpi"><div class="small">Autostrada</div><div class="v">€ ${money(sumToll)}</div></div>
+<div class="kpi"><div class="small">Altre spese</div><div class="v">€ ${money(sumOther)}</div></div>
+<div class="kpi"><div class="small">Benzina (separata)</div><div class="v">€ ${money(sumFuel)}</div><div class="small">Voci benzina: ${cntVociFuel} • Totale con benzina: € ${money(totaleRimborsiConFuel)}</div></div>
+`;
+syncDetailLink();
+}
+btnLoad.addEventListener("click",load); syncDetailLink(); load();
+})();
+</script></body></html>
